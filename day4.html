@@ -1,0 +1,1262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 4: Specifications &amp; AI &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <span class="day-badge">Day 4 &middot; Thu Jul 9</span>
+  <h1>Writing Formal Specifications, and How Much an AI Can Help</h1>
+  <p class="lead">Today's goal: get comfortable turning a plain-English description into a precise, formal <code>spec fn</code> in Verus, and see how much of that an AI assistant can do for you. Today, you only ever write specs, never executable code: every exec function you see today is already given to you, complete and correct. Proofs (actually getting Verus to verify code matches a spec) are Day 5's job.</p>
+
+  <div class="section-block do">
+    <span class="section-tag">Do &middot; first, before reading further</span>
+    <h2>🤔 Ambiguity Quiz</h2>
+    <p>Here's a problem: <strong>"count the words in a sentence."</strong> Sounds simple. For each input below, type the number of words <em>you</em> think it has, then reveal how others might disagree.</p>
+
+    <div class="quiz-item">
+      <label><code>"  hello   world  "</code> (extra spaces at the start, end, and between words)</label>
+      <input type="text" id="q1" placeholder="Your answer...">
+      <button class="reveal-btn btn btn-outline" data-target="a1" type="button">Show possible interpretations</button>
+      <div class="reveal-answer" id="a1">
+        Most people say <strong>2</strong>. But if you split naively on single spaces, you might get several empty "words" from the doubled-up spaces. A precise spec has to say exactly how to handle extra whitespace.
+      </div>
+    </div>
+
+    <div class="quiz-item">
+      <label><code>"don't"</code> (just this one word, by itself)</label>
+      <input type="text" id="q2" placeholder="Your answer...">
+      <button class="reveal-btn btn btn-outline" data-target="a2" type="button">Show possible interpretations</button>
+      <div class="reveal-answer" id="a2">
+        Most people say <strong>1</strong>: it's one word with an apostrophe in it.
+        But a program that splits text apart wherever there's punctuation would see two
+        pieces, <code>don</code> and <code>t</code>, and might report <strong>2</strong>.
+        The English description never said how to treat apostrophes.
+      </div>
+    </div>
+
+    <div class="quiz-item">
+      <label><code>""</code> (an empty string)</label>
+      <input type="text" id="q3" placeholder="Your answer...">
+      <button class="reveal-btn btn btn-outline" data-target="a3" type="button">Show possible interpretations</button>
+      <div class="reveal-answer" id="a3">
+        Is the answer 0? Or does a naive "split on spaces" approach report 1 (treating the empty string as a single empty "word")? This is exactly the kind of edge case a spec needs to pin down.
+      </div>
+    </div>
+
+    <div class="quiz-item">
+      <label><code>"one-two-three"</code></label>
+      <input type="text" id="q4" placeholder="Your answer...">
+      <button class="reveal-btn btn btn-outline" data-target="a4" type="button">Show possible interpretations</button>
+      <div class="reveal-answer" id="a4">
+        Is a hyphenated phrase 1 word or 3? Dictionaries disagree with each other on this in real life. There's no universally "correct" answer, only a chosen one.
+      </div>
+    </div>
+
+    <div class="callout tip">
+      If your answers differ from a partner's (or you could imagine someone reasonably
+      disagreeing with your own answer), that's the point: <strong>the description was
+      ambiguous.</strong> Removing that ambiguity, precisely, is exactly what today is
+      about. Keep this in mind today: an AI reading an ambiguous English description
+      faces exactly the same problem you just did.
+    </div>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Introducing Verus</h2>
+    <p>
+      <strong>Verus</strong> is an open-source research tool for writing <strong>formally
+      verified</strong> code in Rust. "Formal verification" means using mathematical
+      logic to <em>prove</em> a program does what it's supposed to do, for every
+      possible input, rather than testing a sample of inputs and hoping the rest
+      behave the same way. That's a fundamentally stronger guarantee than testing: a
+      test suite can only ever tell you "this passed on the inputs I tried"; a formal
+      proof tells you "this is correct for every input," the same way a mathematical
+      proof holds for every number, not just the ones anyone bothered to check.
+    </p>
+    <p>
+      Here's how it actually works. You write ordinary Rust code, then add extra
+      annotations, like <code>requires</code>, <code>ensures</code>, and
+      <code>spec fn</code>, describing precisely what your code promises to
+      guarantee. Verus reads those annotations and tries to mathematically prove your
+      code lives up to them, using an automatic theorem prover called an
+      <strong>SMT solver</strong> (Verus uses one called <strong>Z3</strong>) to do
+      the heavy logical lifting. Succeed, and you get a genuine mathematical
+      guarantee. Fail, and Verus tells you exactly which promise it couldn't verify,
+      the same way the Rust compiler points at exactly which line has a type error.
+      Today, you're focused entirely on the first half of that picture: writing the
+      promises (specs) precisely. Day 5 is where you'll spend more time on the second
+      half: getting Verus to actually prove code lives up to them.
+    </p>
+    <p>
+      This is also why a tool like this targets <strong>Rust</strong> specifically,
+      rather than a looser language like Python. Rust's own design (its strict type
+      system, and its rules about who owns each piece of memory) already does a lot
+      of the disciplined bookkeeping a verifier needs, giving Verus a running start.
+      Verified Rust code is also still ordinary, fast, real Rust once it compiles:
+      formal verification happens entirely before your program ever runs, adding a
+      mathematical guarantee on top without changing what the compiled program is.
+    </p>
+    <div class="callout tip">
+      This is the actual research frontier <a href="https://hiprel-group.github.io/VeriContest/" target="_blank" rel="noopener">VeriContest</a> sits on, and the reason this
+      whole internship uses Rust and Verus instead of a friendlier-looking language:
+      you're using the real tool, not a simplified stand-in for it.
+    </div>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 What is a specification?</h2>
+    <p>
+      A <strong>specification</strong> states, precisely, what the correct answer is for
+      <em>every</em> possible input, not just the examples in your test table.
+      For leap years, our spec is actually already precise: "divisible by 4, except
+      centuries (divisible by 100), which are not leap years, except centuries divisible
+      by 400, which are leap years after all." The reason it's a good spec is that
+      there's no reasonable way to read it two different ways.
+    </p>
+
+    <div class="diagram">
+      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;align-items:stretch;">
+        <div class="card reveal" style="max-width:180px;transition-delay:0s;"><h3>"Count the words"</h3><p style="font-size:0.85rem;">A vague description: many readings possible.</p></div>
+        <div class="reveal" style="align-self:center;font-size:1.4rem;color:var(--text-muted);transition-delay:0.1s;">&rarr;</div>
+        <div class="card reveal" style="max-width:170px;transition-delay:0.2s;border-color:var(--danger);"><h3 style="color:var(--danger);">Reading A</h3><p style="font-size:0.85rem;">Split on any whitespace, ignore empties.</p></div>
+        <div class="card reveal" style="max-width:170px;transition-delay:0.3s;border-color:var(--accent);"><h3 style="color:var(--accent);">Reading B</h3><p style="font-size:0.85rem;">Split on single spaces exactly.</p></div>
+        <div class="card reveal" style="max-width:170px;transition-delay:0.4s;border-color:var(--success);"><h3 style="color:var(--success);">Reading C</h3><p style="font-size:0.85rem;">Split on spaces and hyphens.</p></div>
+      </div>
+    </div>
+
+    <p>
+      <strong>Verus</strong> lets you write a specification directly as Rust code, using
+      a special kind of function called a <code>spec fn</code>. A <code>spec fn</code>
+      is never actually run. It exists purely so Verus can reason about it
+      mathematically. Here's the leap-year spec as a <code>spec fn</code>:
+    </p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+spec fn is_leap_spec(year: int) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus (spec)</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p>
+      Notice the type <code>int</code>, not <code>i32</code>. Inside a
+      specification, Verus uses mathematical whole numbers with no size limit, since a
+      spec is describing an idea, not a piece of running memory. A <code>spec fn</code>
+      alone, though, can't actually check anything about real code yet: for that, we
+      need to connect it to something that runs.
+    </p>
+
+    <h3>The grammar of a spec, from the real Verus guide</h3>
+    <p>
+      A <code>spec fn</code> body has to be <strong>purely mathematical</strong>: no
+      loops, no <code>let mut</code>, no changing a variable partway through. It's
+      always just one expression that computes to a value, the same way a math
+      formula is one expression, never a sequence of steps. Everything else you've
+      learned about Rust expressions still applies:
+    </p>
+    <ul>
+      <li><strong>Arithmetic:</strong> <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code>, exactly as before.</li>
+      <li><strong>Comparison:</strong> <code>==</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code>, each producing a <code>bool</code>.</li>
+      <li><strong>Logic:</strong> <code>&amp;&amp;</code> (and), <code>||</code> (or), <code>!</code> (not), the same as Day 3.</li>
+      <li><strong>New: implication, <code>==&gt;</code>.</strong> <code>A ==> B</code> means "if <code>A</code> is true, then <code>B</code> must also be true" (if <code>A</code> is false, the whole thing is just automatically true; it makes no claim in that case). You've actually already been reading this all week without a name for it: <code>result == is_leap_spec(year as int)</code> is really "IF the code ran, THEN its result matches the spec." You'll see <code>==&gt;</code> written out explicitly starting today.</li>
+    </ul>
+    <p>
+      A <code>spec fn</code> can also call <em>other</em> <code>spec fn</code>s, the
+      same way an ordinary function can call a helper function. Here's a tiny
+      example, a helper that computes the smaller of two numbers:
+    </p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+spec fn min(a: int, b: int) -> int {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus (spec)</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p>
+      Splitting a spec into small helper <code>spec fn</code>s like this, instead of
+      one giant expression, makes specs much easier to read; you'll use exactly this
+      helper later today.
+    </p>
+
+    <h3>Saying "for every" and "there exists": <code>forall</code> and <code>exists</code></h3>
+    <p>
+      Some specs need to talk about <em>every</em> possible value of something, or
+      claim that <em>at least one</em> value exists with some property. Verus has two
+      keywords for exactly this, and you already saw <code>forall</code> once, in Day
+      1's periodicity example. The syntax for both:
+    </p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+// "for every whole number x, if x is greater than 0, then x + 1 is too"
+forall|x: int| x > 0 ==> #[trigger] (x + 1) > 0
+
+// "there is some whole number x whose square is 4" (true: x = 2 or x = -2)
+exists|x: int| #[trigger] (x * x) == 4
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus (spec)</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p>
+      Read the pattern piece by piece: <code>|x: int|</code> introduces a new
+      variable named <code>x</code>, of type <code>int</code>, that the rest of the
+      expression is "for every" or "there exists" a value of. For <code>forall</code>,
+      what follows is almost always an implication (<code>==></code>): "for every
+      <code>x</code>, IF some condition holds, THEN some conclusion follows." For
+      <code>exists</code>, what follows is usually just a condition to satisfy, no
+      implication needed. The <code>#[trigger]</code> annotation is a hint telling
+      Verus which expression to watch for; you'll see it on almost every
+      <code>forall</code>/<code>exists</code> you write, including in several
+      exercises below.
+    </p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 What is executable code?</h2>
+    <p>
+      A spec by itself doesn't <em>do</em> anything: it can't be called from a
+      program, can't run, can't produce an answer for a real input. The part that
+      actually runs is what Verus calls <strong>executable code</strong>, or an
+      <strong>exec fn</strong>: an ordinary Rust function, exactly like every
+      <code>is_leap</code>, <code>is_prime</code>, and <code>judge</code> you've
+      written this week. The whole point of this week's project is connecting the
+      two: a spec that says what <em>should</em> be true, and executable code that
+      actually computes an answer. Every exec function on this page from here on is
+      already given to you, complete; today is only about writing the spec half of
+      that connection.
+    </p>
+    <p>
+      That connection is an <code>ensures</code> clause. It says: "I promise the
+      result of this function always matches the spec," and Verus will refuse to
+      accept the code unless it can prove that promise true for <em>every</em>
+      possible input:
+    </p>
+    <p>Click <strong>Run</strong> below to verify it for real, right now:</p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_leap_spec(year: int) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn is_leap(year: i32) -> (result: bool)
+    ensures
+        result == is_leap_spec(year as int),
+{
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="18"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>You should see <code>verification results:: 2 verified, 0 errors</code>.</p>
+    <p>
+      <strong>Read that carefully: "2 verified, 0 errors" means Verus just proved this
+      holds for every single 32-bit whole number there is</strong> (positive,
+      negative, zero, all four billion or so of them) without testing a single
+      one. That's the "aha" this whole week has been building toward, and notice: you
+      didn't have to write any separate logical argument to get it. Verus's automatic
+      solver worked this one out entirely on its own, because the arithmetic involved
+      is simple enough for it to handle by itself. Not every spec is this easy to
+      connect to its code automatically; when it isn't, that's where an explicit
+      <strong>proof</strong> comes in, which is exactly what Day 5 is for.
+    </p>
+
+    <h3>What does executable code failing to match its spec look like?</h3>
+    <p>Swap in one of Tuesday's buggy versions instead (here, <code>is_leap_buggy_1</code>, which forgets the ×400 exception) and Verus refuses to accept it. Try it yourself:</p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_leap_spec(year: int) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn is_leap(year: i32) -> (result: bool)
+    ensures
+        result == is_leap_spec(year as int),
+{
+    year % 4 == 0 && year % 100 != 0   // missing the x400 exception -- bug!
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="18"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Here's the same error, captured for reference in case you want to compare or the server is unreachable:</p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+error: postcondition not satisfied
+  --> main.rs:11:9
+   |
+11 |         result == is_leap_spec(year as int),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ failed this postcondition
+12 | {
+13 |     year % 4 == 0 && year % 100 != 0
+   |     -------------------------------- at the end of the function body
+
+verification results:: 1 verified, 1 errors
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Real Verus output (buggy version)</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p class="worksheet-note">
+      Verus points at the exact <code>ensures</code> line it couldn't prove, and shows
+      you the executable function body it was checking. This is often more useful for
+      debugging than a failing test, because it's telling you the promise is broken in
+      <em>general</em>, not just for one input you happened to try.
+    </p>
+
+    <h3>A trap: "verified" doesn't mean your spec is right</h3>
+    <p>
+      There's a genuinely important limit to what "verified" tells you. Verus only
+      checks that your <em>executable code matches whatever spec you actually
+      wrote</em>. It has no idea what the problem was really supposed to be; if your
+      spec is too weak, too vague, or accidentally says almost nothing at all,
+      completely wrong code can still pass. Watch this:
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_leap_spec_trivial(year: int) -> bool {
+    true
+}
+
+fn is_leap(year: i32) -> (result: bool)
+    ensures
+        is_leap_spec_trivial(year as int),
+{
+    true
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="16"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>
+      Run it: you'll see <code>verification results:: 2 verified, 0 errors</code>,
+      for a function that claims <em>every single year</em> is a leap year. Nothing
+      about that code is correct. But <code>is_leap_spec_trivial</code> never
+      actually says anything about the year at all, it just says <code>true</code>
+      no matter what; so literally any executable code, right or wrong, satisfies
+      it. Verus did exactly what it promised (proved the code matches the spec);
+      the spec itself was simply empty, and nobody told Verus that was a problem,
+      because it can't tell.
+    </p>
+    <div class="callout warn">
+      <strong>The habit this should build:</strong> a green <code>verified</code>
+      is the finish line for a <em>proof</em>-writing exercise, but not for a
+      <em>spec</em>-writing one. Every time you finish filling in a spec today and
+      it reports <code>verified</code>, that's your cue to click the reveal button
+      and compare your spec, clause by clause, against the real one, not to stop.
+      Ask yourself: does mine actually rule out every wrong answer the way the
+      real one does, or does it just happen to survive against the one correct
+      implementation sitting in the playground? An incomplete or overly loose spec
+      can slip through unnoticed far more easily than incomplete code can, exactly
+      because nothing about writing a spec forces you to think through every case
+      the way writing a loop does. This is also a real, known danger of using AI
+      to write specs: a plausible-looking but too-weak spec can pass verification
+      and still be a bad spec.
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <strong>Eight spec-writing exercises today, all checkable for real:</strong> every
+    one of them already has the executable code (and, quietly, a real proof
+    underneath, for the ones where Verus's automatic solver needs help) sitting in
+    the playground. You'll usually want to try writing the spec from the plain-English
+    description first, without reading the code, the way a spec often gets written
+    before any code exists. But the code is always right there if you want a hint,
+    and once your spec is actually correct, clicking Run will genuinely report
+    <code>verified</code>, not just "this is valid syntax." <strong>Every single
+    time you get <code>verified</code>, click the reveal button and compare your
+    spec against the real one before moving on</strong>, the way you just saw above:
+    passing on its own is not proof your spec is complete.
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do &middot; spec to match given code &middot; fully verifiable</span>
+    <h2>🔨 Three specs, matched to code that's already there</h2>
+    <p>
+      For all three of these, the executable function is already complete and
+      correct, and needs no explicit proof beyond your spec (Verus's automatic
+      solver handles the rest by itself). Fill in only the spec, click Run, and a
+      correct spec will genuinely report <code>verified</code>.
+    </p>
+
+    <h3>1. Leap years</h3>
+    <ol>
+      <li>Fill in the spec worksheet below for the leap-year problem, in your own words.</li>
+      <li>Swap with your partner, and try to poke one hole in each other's spec ("what does yours say about year 0?").</li>
+      <li>Translate your spec into the <code>spec fn</code> in the playground below, replacing the placeholder.</li>
+      <li>Click Run. If it doesn't verify on the first try, read the error carefully. It's telling you exactly which line and which case broke the promise.</li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_leap_spec(year: int) -> bool {
+    // TODO: write your own spec here, based on YOUR written specification above
+    true
+}
+
+fn is_leap(year: i32) -> (result: bool)
+    ensures
+        result == is_leap_spec(year as int),
+{
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="18"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <h3>2. Letter grades</h3>
+    <p>
+      Write <code>letter_grade_spec(score)</code> for the same cutoffs from Day 1
+      and Day 3 (90+ is A, 80&ndash;89 is B, 70&ndash;79 is C, 60&ndash;69 is D,
+      below 60 is F).
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn letter_grade_spec(score: int) -> char {
+    // TODO: write the spec here, matching the cutoffs from Day 1 / Day 3
+    'F'
+}
+
+fn letter_grade(score: i32) -> (result: char)
+    ensures
+        result == letter_grade_spec(score as int),
+{
+    if score >= 90 {
+        'A'
+    } else if score >= 80 {
+        'B'
+    } else if score >= 70 {
+        'C'
+    } else if score >= 60 {
+        'D'
+    } else {
+        'F'
+    }
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <h3>3. Valid triangles</h3>
+    <p>
+      Write <code>is_valid_triangle_spec(a, b, c)</code> for the rule from Day 1:
+      all three sides positive, and each side strictly less than the sum of the
+      other two.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_valid_triangle_spec(a: int, b: int, c: int) -> bool {
+    // TODO: write the spec here, matching the rule from Day 1
+    true
+}
+
+fn is_valid_triangle(a: i32, b: i32, c: i32) -> (result: bool)
+    requires
+        0 < a < 1_000_000,
+        0 < b < 1_000_000,
+        0 < c < 1_000_000,
+    ensures
+        result == is_valid_triangle_spec(a as int, b as int, c as int),
+{
+    a > 0 && b > 0 && c > 0 && a + b > c && b + c > a && a + c > b
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Notice the <code>requires</code> clause bounding how big the sides can be: <code>i32</code> is bounded, unlike the spec's unbounded <code>int</code>, so <code>a + b</code> really could overflow for huge inputs without it.</p>
+
+    <button class="reveal-btn btn btn-outline" data-target="solved-verifiable-specs" data-hide-label="Hide solved versions" type="button">See the solved specs (try them yourself first!)</button>
+    <div class="reveal-answer" id="solved-verifiable-specs">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+spec fn is_leap_spec(year: int) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+spec fn letter_grade_spec(score: int) -> char {
+    if score >= 90 {
+        'A'
+    } else if score >= 80 {
+        'B'
+    } else if score >= 70 {
+        'C'
+    } else if score >= 60 {
+        'D'
+    } else {
+        'F'
+    }
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+spec fn is_valid_triangle_spec(a: int, b: int, c: int) -> bool {
+    a > 0 && b > 0 && c > 0 && a + b > c && b + c > a && a + c > b
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do &middot; fully verifiable</span>
+    <h2>🔨 4. Vowels: a spec with no numbers at all</h2>
+    <p>
+      Not every spec is about numbers. Write <code>is_vowel_spec(c)</code>: a
+      character is a vowel if it's exactly one of <code>a</code>, <code>e</code>,
+      <code>i</code>, <code>o</code>, or <code>u</code>. Try it from that
+      description alone first; the executable code below is there to actually
+      check your answer once you click Run, not to hint at the answer.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_vowel_spec(c: char) -> bool {
+    // TODO: c is 'a', 'e', 'i', 'o', or 'u'
+    true
+}
+
+fn is_vowel(c: char) -> (result: bool)
+    ensures
+        result == is_vowel_spec(c),
+{
+    c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="14"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-vowel-spec" data-hide-label="Hide solved version" type="button">See the solved spec (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-vowel-spec">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+spec fn is_vowel_spec(c: char) -> bool {
+    c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do &middot; fully verifiable</span>
+    <h2>🔨 5. Prime numbers: a spec that needs "for every"</h2>
+    <p>
+      Write <code>is_prime_spec(n)</code> for the definition from Day 2 and Day 3:
+      <code>n</code> is prime if it's at least 2, and <em>no</em> whole number
+      between 2 and <code>n</code> (not including <code>n</code>) divides it
+      evenly. That word "no" is the hint: this needs a <code>forall</code>, saying
+      "for every possible divisor, it doesn't evenly divide <code>n</code>." Try
+      it from the description first; the executable code below it (checking every
+      possible divisor in a loop) is already written and already correct, so a
+      correct spec will make the whole thing report <code>verified</code>.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_prime_spec(n: int) -> bool {
+    // TODO: n is at least 2, AND for every d with 2 <= d < n, n % d != 0
+    true
+}
+
+fn is_prime(n: i32) -> (result: bool)
+    requires
+        2 <= n <= 1_000_000,
+    ensures
+        result == is_prime_spec(n as int),
+{
+    let mut d: i32 = 2;
+    let mut found_divisor: bool = false;
+    while d < n
+        invariant
+            2 <= d <= n,
+            2 <= n <= 1_000_000,
+            found_divisor == exists|k: int| 2 <= k < d as int && #[trigger] (n as int % k) == 0,
+        decreases n - d,
+    {
+        if n % d == 0 {
+            found_divisor = true;
+        }
+        d = d + 1;
+    }
+    !found_divisor
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="26"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Don't worry about understanding every line of that loop, especially the
+      <code>invariant</code> clause: that's exactly the kind of proof work Day 5
+      is for. All you need from it today is that it's already correct, so it'll
+      tell you the truth about your spec.
+    </p>
+    <button class="reveal-btn btn btn-outline" data-target="solved-is-prime-spec" data-hide-label="Hide solved version" type="button">See the solved spec (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-is-prime-spec">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+spec fn is_prime_spec(n: int) -> bool {
+    n >= 2 && forall|d: int| 2 <= d < n ==> #[trigger] (n % d) != 0
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do &middot; fully verifiable</span>
+    <h2>🔨 6. Now let an AI write a spec, and check it against real code</h2>
+    <ol>
+      <li>
+        Open your AI chat assistant. Give it <em>only</em> the plain-English rule, not any of your Verus code:
+        <div class="callout tip" style="font-family:var(--font-mono);">"Using Verus (a Rust verification tool), write a spec fn called is_leap_spec that takes a year as an int and returns a bool. A year is a leap year if it's divisible by 4, except years divisible by 100, which are not leap years, except years divisible by 400, which are leap years after all."</div>
+      </li>
+      <li>Paste whatever it gives you into the playground below, replacing the placeholder, and click Run. Unlike a plain syntax check, this one actually tells you whether the AI's spec is <em>correct</em>: the executable code underneath is the same, real, already-correct <code>is_leap</code> from earlier today.</li>
+      <li>Now also compare it to your own spec fn by hand: pick 5-6 tricky years (2000, 1900, 2024, 2023, 0, and a negative year) and read through both versions of the code. Do they agree on every one?</li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_leap_spec_ai(year: int) -> bool {
+    // TODO: paste the AI's spec fn body here
+    true
+}
+
+fn is_leap(year: i32) -> (result: bool)
+    ensures
+        result == is_leap_spec_ai(year as int),
+{
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; checking the AI's spec against real code</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="18"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do &middot; a real research problem &middot; fully verifiable</span>
+    <h2>🔨 7. Contains Duplicate: a spec straight from VeriContest</h2>
+    <p>
+      Here's a genuine problem, completely unmodified, taken directly from the
+      <a href="https://hiprel-group.github.io/VeriContest/" target="_blank" rel="noopener">VeriContest</a>
+      dataset (946 real competitive-programming problems, each with a formal spec
+      and a Verus proof): <strong>LeetCode 217, "Contains Duplicate."</strong>
+    </p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+Given an integer array nums, return true if any value appears at least twice
+in the array, and return false if every element is distinct.
+
+Example: nums = [1,2,3,1] -> true (the value 1 occurs at indices 0 and 3)
+Example: nums = [1,2,3,4] -> false (all elements are distinct)
+Example: nums = [1,1,1,3,3,4,3,2,4,2] -> true
+
+Constraints: 1 <= nums.length <= 10,000; -1,000,000,000 <= nums[i] <= 1,000,000,000
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Real VeriContest problem description (lc217)</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p>
+      This one genuinely needs <code>exists</code>, not just <code>forall</code>:
+      "contains a duplicate" means "there exists some pair of positions holding
+      the same value," which has no way to be phrased truthfully without it. You'll
+      also spot <code>forall</code> in the <code>requires</code> clause below,
+      bounding every value in the array; between the two, this problem uses both
+      quantifiers for real. One more new piece of syntax in the code: you'll see
+      <code>HashSet</code>, Rust's name for a set data structure, used here to
+      remember "which values have I already seen." You don't need to understand
+      it today, just recognize what it's doing.
+    </p>
+    <div class="callout warn">
+      This problem's <code>ensures</code> clause is <code>contains_duplicate_spec(nums@,
+      res)</code>, not <code>res == contains_duplicate_spec(...)</code> like most of
+      today's other problems. That difference matters, exactly because of the trap you
+      just saw above: if you write a spec that ignores <code>res</code> and always
+      comes out <code>true</code> (or anything logically equivalent to always-true,
+      even if it doesn't look like it at a glance), it'll <code>verify</code> no
+      matter what, without actually saying anything about duplicates. This is the
+      single easiest problem today to accidentally pass without being correct, so
+      comparing against the real spec afterward matters here more than anywhere else
+      on this page.
+    </div>
+    <ol>
+      <li>
+        Try writing <code>contains_duplicate_spec</code> yourself first, in plain
+        English before Verus syntax: "the result is true exactly when there's some
+        pair of positions, an earlier one and a later one, holding equal values."
+      </li>
+      <li>If that feels like a lot to write cold, that's a completely reasonable place to ask an AI instead: give it the description above and see what it comes up with.</li>
+      <li>Paste whatever you end up with (yours or the AI's) into the playground below and click Run. The executable code and proof underneath are already complete and correct, so a genuinely correct spec will report <code>verified</code> for real.</li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+use std::collections::HashSet;
+
+verus! {
+
+broadcast use vstd::std_specs::hash::group_hash_axioms;
+
+pub struct Solution;
+
+impl Solution {
+    // TODO: write (or paste an AI's attempt at) a spec here. It takes the list
+    // of numbers and a candidate result, and says whether that result correctly
+    // reports whether a duplicate pair exists.
+    pub open spec fn contains_duplicate_spec(nums: Seq<i32>, res: bool) -> bool {
+        false
+    }
+
+    pub fn contains_duplicate(nums: Vec<i32>) -> (res: bool)
+        requires
+            1 <= nums.len() <= 10_000,
+            forall|i: int| 0 <= i < nums.len() ==>
+                -1_000_000_000 <= #[trigger] nums[i] <= 1_000_000_000,
+        ensures
+            Self::contains_duplicate_spec(nums@, res),
+    {
+        let mut seen = HashSet::new();
+        for i in 0..nums.len()
+            invariant
+                1 <= nums.len() <= 10_000,
+                forall|k: int| 0 <= k < nums.len() ==>
+                    -1_000_000_000 <= #[trigger] nums[k] <= 1_000_000_000,
+                forall|k: int| 0 <= k < i ==> seen@.contains(#[trigger] nums[k]),
+                forall|v: i32| seen@.contains(v) ==> exists|k: int| 0 <= k < i && nums[k] == v,
+                forall|k: int, m: int| 0 <= k < i && k < m < i ==> nums[k] != nums[m],
+        {
+            if seen.contains(&nums[i]) {
+                proof {
+                    let v = nums[i as int];
+                    assert(seen@.contains(v));
+                    let k = choose|k: int| 0 <= k < i && nums[k] == v;
+                    assert(0 <= k < (i as int) < nums@.len() && nums[k] == nums[i as int]);
+                }
+                return true;
+            }
+            proof {
+                assert forall|k: int, m: int| 0 <= k < (i + 1) && k < m < (i + 1) implies nums[k]
+                    != nums[m] by {
+                    if m < i as int {
+                    } else {
+                        assert(seen@.contains(nums[k]));
+                        assert(!seen@.contains(nums[i as int]));
+                    }
+                }
+            }
+            seen.insert(nums[i]);
+        }
+        proof {
+            assert(forall|k: int, m: int|
+                0 <= k < nums.len() && k < m < nums.len() ==> nums[k] != nums[m]);
+        }
+        false
+    }
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your attempt</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="30"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Same deal as problems 5 and 8: everything below your spec (the loop, the
+      <code>HashSet</code>, the invariant) is already correct and already there.
+      It's just what makes "click Run" a genuine correctness check.
+    </p>
+    <button class="reveal-btn btn btn-outline" data-target="solved-lc217-spec" data-hide-label="Hide the real spec" type="button">See the real spec from the VeriContest dataset</button>
+    <div class="reveal-answer" id="solved-lc217-spec">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+pub open spec fn contains_duplicate_spec(nums: Seq<i32>, res: bool) -> bool {
+    res == (exists|i: int, j: int| 0 <= i < j < nums.len() && nums[i] == nums[j])
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Real VeriContest spec (lc217)</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <p class="worksheet-note">
+        Read it as one sentence: "the result equals whether there exists a pair
+        of positions <code>i</code> and <code>j</code>, with <code>i</code>
+        strictly before <code>j</code>, where the two values are equal." Notice
+        it never says <em>which</em> pair, only that at least one exists; that's
+        exactly what makes it an <code>exists</code> rather than something you
+        could compute by hand for one specific pair. Confirmed while building
+        this site: this exact spec, together with the given code and proof
+        (which uses a <code>HashSet</code> to remember values seen so far),
+        verifies with the real Verus binary.
+      </p>
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do &middot; a real research problem &middot; fully verifiable</span>
+    <h2>🔨 8. Number of Steps to Reduce a Number to Zero: a spec straight from VeriContest</h2>
+    <p>
+      One more genuine, unmodified problem from the
+      <a href="https://hiprel-group.github.io/VeriContest/" target="_blank" rel="noopener">VeriContest</a>
+      dataset: <strong>LeetCode 1342, "Number of Steps to Reduce a Number to
+      Zero."</strong>
+    </p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+Given an integer num, return the number of steps to reduce it to zero.
+
+In one step, if the current number is even, you have to divide it by 2,
+otherwise, you have to subtract 1 from it.
+
+Example: num = 14 -> 6 steps
+  14 (even, /2) -> 7 (odd, -1) -> 6 (even, /2) -> 3 (odd, -1)
+  -> 2 (even, /2) -> 1 (odd, -1) -> 0
+
+Constraints: 0 <= num <= 1,000,000
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Real VeriContest problem description (lc1342)</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p>
+      This spec is naturally <strong>recursive</strong>: "the number of steps for
+      <code>n</code>" is defined using "the number of steps for a smaller number,"
+      exactly the way the English description defines it. A recursive
+      <code>spec fn</code> needs a <code>decreases</code> clause, proving each
+      recursive call gets closer to the base case (same idea as the loops you've
+      written all week, just applied to a function calling itself instead).
+    </p>
+    <ol>
+      <li>
+        Try writing <code>spec_steps</code> yourself first: three cases, matching
+        the three lines of the English description. "If <code>n</code> is 0 or
+        less, 0 steps." "If <code>n</code> is even, 1 plus however many steps
+        <code>n / 2</code> takes." "Otherwise, 1 plus however many steps
+        <code>n - 1</code> takes."
+      </li>
+      <li>If that feels like a lot to write cold, that's a completely reasonable place to ask an AI instead: give it the description above and see what it comes up with.</li>
+      <li>Paste whatever you end up with (yours or the AI's) into the playground below and click Run. The executable code and proof underneath are already complete and correct, so a genuinely correct spec will report <code>verified</code>.</li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+pub struct Solution;
+
+impl Solution {
+    // TODO: write (or paste an AI's attempt at) a spec here, with three cases:
+    // n <= 0 -> 0; n even -> 1 + steps(n / 2); n odd -> 1 + steps(n - 1)
+    pub open spec fn spec_steps(n: int) -> int
+        decreases n
+    {
+        0
+    }
+
+    proof fn spec_steps_nonneg(n: int)
+        requires
+            n >= 0,
+        ensures
+            Self::spec_steps(n) >= 0,
+        decreases n,
+    {
+        if n > 0 {
+            if n % 2 == 0 {
+                Self::spec_steps_nonneg(n / 2);
+            } else {
+                Self::spec_steps_nonneg(n - 1);
+            }
+        }
+    }
+
+    proof fn spec_steps_bound(n: int)
+        requires
+            n >= 0,
+        ensures
+            Self::spec_steps(n) <= 2 * n,
+        decreases n,
+    {
+        if n > 0 {
+            if n % 2 == 0 {
+                Self::spec_steps_bound(n / 2);
+            } else {
+                Self::spec_steps_bound(n - 1);
+            }
+        }
+    }
+
+    pub fn number_of_steps(num: i32) -> (result: i32)
+        requires
+            0 <= num <= 1_000_000,
+        ensures
+            result == Self::spec_steps(num as int),
+    {
+        let mut n = num;
+        let mut steps = 0i32;
+
+        proof {
+            Self::spec_steps_bound(num as int);
+        }
+
+        while n > 0
+            invariant
+                0 <= n <= 1_000_000,
+                0 <= steps <= 2_000_000,
+                steps as int + Self::spec_steps(n as int) == Self::spec_steps(num as int),
+                Self::spec_steps(num as int) <= 2_000_000,
+            decreases n,
+        {
+            proof {
+                if n as int % 2 == 0 {
+                    Self::spec_steps_nonneg(n as int / 2);
+                } else {
+                    Self::spec_steps_nonneg(n as int - 1);
+                }
+            }
+            if n % 2 == 0 {
+                n = n / 2;
+            } else {
+                n = n - 1;
+            }
+            steps = steps + 1;
+        }
+        steps
+    }
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your attempt</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="30"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Same deal as problem 5: everything below your spec (the two small helper
+      <code>proof fn</code>s and the loop) is already correct and already there.
+      You're not expected to read or understand it today; it's just what makes
+      "click Run" a genuine correctness check instead of only a syntax check.
+    </p>
+    <button class="reveal-btn btn btn-outline" data-target="solved-lc1342-spec" data-hide-label="Hide the real spec" type="button">See the real spec from the VeriContest dataset</button>
+    <div class="reveal-answer" id="solved-lc1342-spec">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+pub open spec fn spec_steps(n: int) -> int
+    decreases n
+{
+    if n <= 0 {
+        0
+    } else if n % 2 == 0 {
+        1 + Self::spec_steps(n / 2)
+    } else {
+        1 + Self::spec_steps(n - 1)
+    }
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Real VeriContest spec (lc1342)</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <p class="worksheet-note">
+        If yours (or the AI's) matches this shape, even with different variable
+        names, you've written a real spec from a real research dataset, and
+        Verus should have told you so directly: <code>verified</code>. This is
+        also the first spec you've seen that calls itself:
+        <code>spec_steps(n)</code> is defined using
+        <code>spec_steps(n / 2)</code> or <code>spec_steps(n - 1)</code>, exactly
+        the way the English description defines "steps for <code>n</code>" in
+        terms of "steps for a smaller number." Confirmed while building this
+        site: this exact spec, together with the given proof, verifies with the
+        real Verus binary.
+      </p>
+    </div>
+  </div>
+
+  <div class="section-block materials">
+    <span class="section-tag">Materials</span>
+    <h2>📁 Downloads (optional)</h2>
+    <ul class="file-list">
+      <li><a href="files/spec_template.md" download>⬇ spec_template.md</a></li>
+      <li><a href="files/is_leap_verus.rs" download>⬇ is_leap_verus.rs (skeleton)</a></li>
+    </ul>
+  </div>
+
+  <div class="section-block deliverable">
+    <span class="section-tag">Deliverable</span>
+    <h2>✅ Written Specification</h2>
+    <div class="worksheet" data-key="day4-spec">
+      <p><strong>Input domain</strong>: what kinds of inputs are allowed? (e.g. any whole number? only positive years?)</p>
+      <textarea class="textbox" data-cell="domain" style="min-height:70px;"></textarea>
+      <p><strong>Rules</strong>: write the precise, step-by-step rule.</p>
+      <textarea class="textbox" data-cell="rules" style="min-height:100px;"></textarea>
+      <p><strong>Edge cases we decided on</strong>: list at least 2 tricky inputs and what your spec says about them.</p>
+      <textarea class="textbox" data-cell="edgecases" style="min-height:90px;"></textarea>
+      <p><strong>Comparing your spec to the AI's:</strong> did they agree on every year you checked? If not, where, and which one (if either) was actually correct?</p>
+      <textarea class="textbox" data-cell="aispec" style="min-height:90px;"></textarea>
+    </div>
+    <p class="save-note">Saved automatically in this browser as you type.</p>
+
+    <p>Check these off as you complete them:</p>
+    <div class="worksheet" data-key="day4-checklist">
+      <ul class="tier-list">
+        <li><input type="checkbox" data-cell="c0" id="d4c0"><label for="d4c0">I can explain, in my own words, the difference between a spec and executable code.</label></li>
+        <li><input type="checkbox" data-cell="c1" id="d4c1"><label for="d4c1">I can explain what <code>forall</code>, <code>exists</code>, and <code>==&gt;</code> each mean.</label></li>
+        <li><input type="checkbox" data-cell="c2" id="d4c2"><label for="d4c2">I wrote specs to match given, already-correct code (leap year, letter grade, triangle), and Verus reported them <code>verified</code>.</label></li>
+        <li><input type="checkbox" data-cell="c3" id="d4c3"><label for="d4c3">I tried a buggy version and saw Verus reject it, and I understood why.</label></li>
+        <li><input type="checkbox" data-cell="c4" id="d4c4"><label for="d4c4">I wrote specs for vowels, prime numbers, and an AI's leap year, and checked each one against real code, not just a syntax check.</label></li>
+        <li><input type="checkbox" data-cell="c5" id="d4c5"><label for="d4c5">I wrote a spec using <code>exists</code> for the real VeriContest Contains Duplicate problem and saw it genuinely verify.</label></li>
+        <li><input type="checkbox" data-cell="c6" id="d4c6"><label for="d4c6">I wrote a spec for the real VeriContest "steps to zero" problem and saw it genuinely verify.</label></li>
+        <li><input type="checkbox" data-cell="c7" id="d4c7"><label for="d4c7">I can explain why <code>verified</code> doesn't guarantee a spec is correct, and I compared each of my specs against the revealed real answer instead of stopping at the green checkmark.</label></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout checkpoint">
+    <strong>Checkpoint:</strong> specs written, and Verus reports <code>verified</code>
+    for the leap-year version, and you've seen how (and whether) an AI can do the same
+    work. You're ready for Day 5, where you'll take specs like these the rest of the
+    way: writing the executable code yourself, and getting Verus to actually
+    <em>prove</em> it matches them, including cases where that takes real,
+    hand-written proof work.
+  </div>
+
+  <div class="hero-actions" style="justify-content:flex-start;margin:2rem 0;">
+    <a class="btn btn-primary" href="day5.html">Day 5: Both Workflows, Then Wrap-Up &rarr;</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+<script src="js/codeblock.js"></script>
+<script src="js/playground.js"></script>
+<script src="js/worksheet.js"></script>
+<script src="js/reveal.js"></script>
+</body>
+</html>

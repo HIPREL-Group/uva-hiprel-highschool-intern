@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Project &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <h1>The Project: VeriCode-Mini</h1>
+  <p class="lead">
+    Every programming problem has three parts that can each go wrong on their own:
+    the <strong>code</strong> that solves it, the <strong>tests</strong> that check it,
+    and the <strong>specification</strong> that says what "correct" even means. This
+    week you'll build all three, and on Day 4 you'll go one step further than testing
+    alone can: getting an actual computer-checked <strong>proof</strong>, using a real
+    research tool called <strong>Verus</strong>. Along the way, you'll use AI
+    assistance at every stage: writing code, writing tests, writing specs, and even
+    writing proofs, and see for yourself how much of each one it can actually do.
+  </p>
+
+  <h2>What is VeriCode-Mini?</h2>
+  <p>
+    <strong>VeriCode-Mini</strong> is the tool you'll build this week for checking
+    whether code is actually correct, combining two different approaches:
+    <strong>automated testing</strong> and <strong>formal verification</strong>.
+    You'll build the testing half first (in Python on Day 2, then in Rust from
+    Day 3 onward), then extend it into a real, computer-checked proof starting
+    Day 4.
+  </p>
+  <p>The testing half works like this. You give it:</p>
+  <ul>
+    <li>a programming problem (we'll use <em>"is this year a leap year?"</em> and <em>"is this number prime?"</em>),</li>
+    <li>a table of test cases (input &rarr; expected answer),</li>
+    <li>and any candidate function: yours, a buggy one, or one an AI wrote.</li>
+  </ul>
+  <p>
+    VeriCode-Mini runs the candidate against every test case and reports exactly which
+    ones pass and which ones fail. That's the same idea behind real automatic grading
+    systems, and behind <a href="https://hiprel-group.github.io/VeriContest/" target="_blank" rel="noopener"><strong>VeriContest</strong></a>, which is what inspired this
+    internship.
+  </p>
+  <p>
+    But testing only ever tells you about the inputs you actually tried. On Day 4,
+    you'll write a formal <strong>specification</strong> and use <strong>Verus</strong>
+    (a real verification tool for Rust, the same kind of tool used in the
+    research behind VeriContest) to get a mathematical guarantee that your code
+    is correct for <em>every</em> possible input, not just the ones in your test table.
+    That's VeriCode-Mini's other half: not just checking code against examples, but
+    proving it.
+  </p>
+  <p>
+    Throughout the week, you'll also turn each of these steps over to an AI assistant
+    and see how it does: does it write code that passes your tests? Does it write a
+    spec that matches yours? Does it write a proof that actually verifies, including
+    the tricky details Verus needs? By Day 5, you'll run one final problem through
+    both the testing pipeline and the spec-and-proof pipeline yourself, using AI to
+    help at every step, and compare what each one gives you.
+  </p>
+
+  <h2>How the week builds up</h2>
+  <p>
+    The project is split into stages we call <strong>tiers</strong>. Each tier is a
+    complete, working version of the project, so even if the week goes slower
+    than planned, whatever tier you've reached is still a finished thing you built.
+    Check off each tier as your pair completes it (this is saved in your browser, so it
+    will still be here tomorrow):
+  </p>
+
+  <div class="diagram">
+    <div class="tier-track">
+      <div class="tier-node-wrap" data-tier="0">
+        <div class="tier-node" data-tier="0">0</div>
+        <div class="tier-label">Warm-up<br>bug hunt</div>
+      </div>
+      <div class="tier-node-wrap" data-tier="1">
+        <div class="tier-node" data-tier="1">1</div>
+        <div class="tier-label">AI code +<br>your tests</div>
+      </div>
+      <div class="tier-node-wrap" data-tier="2">
+        <div class="tier-node" data-tier="2">2</div>
+        <div class="tier-label">Rust<br>fundamentals</div>
+      </div>
+      <div class="tier-node-wrap" data-tier="3">
+        <div class="tier-node" data-tier="3">3</div>
+        <div class="tier-label">Spec + proof<br>+ AI</div>
+      </div>
+      <div class="tier-node-wrap" data-tier="4">
+        <div class="tier-node" data-tier="4">4</div>
+        <div class="tier-label">Both workflows<br>capstone</div>
+      </div>
+      <div class="tier-node-wrap" data-tier="5">
+        <div class="tier-node" data-tier="5">5</div>
+        <div class="tier-label">Extensions<br>(bonus)</div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="tier-list">
+    <li><input type="checkbox" class="tier-check" value="0" id="t0"><label for="t0"><strong>Tier 0: Warm-up (Day 1).</strong> You found the bugs planted in the buggy <code>is_leap</code> functions by hand, using the Rust Playground, and filled in the bug-hunt table.</label></li>
+    <li><input type="checkbox" class="tier-check" value="1" id="t1"><label for="t1"><strong>Tier 1: AI code, tested (Day 2).</strong> You vibe-coded a solution in Python with an AI, built your own judge to test it, and used it to catch a real gap between "AI-generated" and "correct."</label></li>
+    <li><input type="checkbox" class="tier-check" value="2" id="t2"><label for="t2"><strong>Tier 2: Rust fundamentals (Day 3).</strong> You can write and run a small Rust function with a loop and a conditional, and translated your Day 2 function into Rust yourself.</label></li>
+    <li><input type="checkbox" class="tier-check" value="3" id="t3"><label for="t3"><strong>Tier 3: Specification, proof, and AI (Day 4).</strong> You wrote a precise spec, translated it into a Verus <code>spec fn</code>, got <code>is_leap</code> <em>verified</em> against it, and compared your spec and proof to an AI's attempts at both.</label></li>
+    <li><input type="checkbox" class="tier-check" value="4" id="t4"><label for="t4"><strong>Tier 4: Both workflows (Day 5).</strong> You ran a brand new problem through both the testing pipeline and the spec-and-proof pipeline, with AI assistance at every step, and compared the results.</label></li>
+    <li><input type="checkbox" class="tier-check" value="5" id="t5"><label for="t5"><strong>Tier 5: Extensions (any day).</strong> You picked up one or more bonus challenges from the <a href="extensions.html">Extensions page</a>.</label></li>
+  </ul>
+
+  <div class="callout tip">
+    <strong>Why tiers instead of one big spec?</strong> Finishing Tier 1 alone is a
+    complete, real project. Everything after that makes it better, but nothing after
+    Tier 1 is required for the week to have been a success. If you ever finish faster
+    than expected, the <a href="extensions.html">Extensions page</a> always has a next
+    step ready. You'll never run out of things to build.
+  </div>
+
+  <div class="callout warn">
+    <strong>A heads-up:</strong> Rust and Verus have more to learn upfront than a
+    language like Python would, which is exactly why Day 2 stays in Python and Day 3
+    is dedicated entirely to learning Rust before Day 4 asks you to write specs and
+    proofs in it. Every code example on this site is also given to you working and
+    ready to copy into the playground, so you're reading and adapting real code, not
+    writing it from a blank page.
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+<script src="js/checklist.js"></script>
+</body>
+</html>

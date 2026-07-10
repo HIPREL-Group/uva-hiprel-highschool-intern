@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extensions: Eight Queens &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <h1>Extensions: The Eight Queens Problem</h1>
+  <p class="lead">
+    Finished a day's core work early, or want a real coding challenge to take
+    home? Here's a single classic computer science puzzle, worth going deep on
+    rather than rushing through: the <strong>Eight Queens Problem</strong>. This
+    page builds up everything you need from scratch, including two new ideas
+    (<strong>depth-first search</strong> and <strong>backtracking</strong>) that
+    you haven't seen yet this week, before asking you to write your own solution
+    in Python.
+  </p>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 What is the Eight Queens Problem?</h2>
+    <p>
+      A chess <strong>queen</strong> can attack any piece in the same row, the
+      same column, or along either diagonal from where it stands, as far as it
+      can see in any of those 8 directions. The puzzle: place
+      <strong>8 queens</strong> on a standard 8&times;8 chessboard so that
+      <em>no two of them attack each other</em>. No two queens may share a row,
+      a column, or a diagonal, all eight at once.
+    </p>
+    <p>Here's one valid arrangement (each <code>Q</code> is a queen; every other square is empty):</p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+Q . . . . . . .
+. . . . Q . . .
+. . . . . . . Q
+. . . . . Q . .
+. . Q . . . . .
+. . . . . . Q .
+. Q . . . . . .
+. . . Q . . . .
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">One valid 8-queens solution</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p>
+      Check a few pairs yourself: the queen in row 1 (column 1) and the queen in
+      row 2 (column 5) don't share a row, column, or diagonal, so they're safe
+      together. Now compare row 1's queen to row 5's queen (column 3): row
+      difference is 4, column difference is 2, different, so no diagonal either.
+      Every one of the <sup>8</sup>C<sub>2</sub> = 28 pairs in this board works
+      out that way; that's what makes it a valid solution.
+    </p>
+    <p>
+      One detail worth spelling out, since it's easy to picture wrong at first:
+      two squares are on the same diagonal exactly when the number of rows
+      between them equals the number of columns between them. A queen at row 2,
+      column 2 and a queen at row 5, column 5 are 3 rows apart and 3 columns
+      apart (3 == 3), so they share a diagonal. A queen at row 2, column 2 and
+      one at row 5, column 4 are 3 rows apart but only 2 columns apart (3 != 2),
+      so they don't. You'll use exactly this rule in the code below.
+    </p>
+    <p>
+      It's harder than it looks by hand. There are 8<sup>8</sup>, over 16
+      million, ways to place 8 queens with one per column, and only
+      <strong>92</strong> of them (12, if you consider rotations and reflections
+      of the same arrangement as "the same solution") actually work. Checking
+      all 16 million by brute force is wasteful. The idea that makes it
+      practical, <strong>backtracking</strong>, is a specific way of using
+      <strong>depth-first search</strong>; both are genuinely useful ideas well
+      beyond this one puzzle, so let's build them up properly before writing any
+      queens-specific code.
+    </p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 What is Depth-First Search (DFS)?</h2>
+    <p>
+      Imagine exploring a cave with branching paths. At the very first fork, you
+      can go <strong>LEFT</strong> or <strong>RIGHT</strong>. Whichever you pick
+      leads to another fork, with the same two choices, and then another. If you
+      always fully explore everything down one direction before ever trying the
+      other, that's <strong>depth-first search</strong>: go as deep as you
+      possibly can along one path first, and only try a different path once
+      you've completely finished with the current one.
+    </p>
+    <p>
+      Here's that exact idea in Python: exploring every possible sequence of 3
+      turns (LEFT or RIGHT) through the cave.
+    </p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def explore(path):
+    if len(path) == 3:
+        print("Reached a room by going:", path)
+        return
+    for direction in ["LEFT", "RIGHT"]:
+        explore(path + [direction])
+
+explore([])
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>
+      Run it. You'll see all 8 possible sequences (2 choices, 3 times in a row,
+      so 2&times;2&times;2 = 8), starting with every LEFT branch fully explored
+      before RIGHT is tried even once: <code>LEFT,LEFT,LEFT</code> then
+      <code>LEFT,LEFT,RIGHT</code>, all the way through
+      <code>RIGHT,RIGHT,RIGHT</code> last. That ordering, finishing one entire
+      branch before moving to the next, is the "depth-first" part of the name.
+      Notice how it works: <code>explore</code> calls <em>itself</em>, once for
+      each choice, with a slightly longer path each time; that's called
+      <strong>recursion</strong>, and it's what makes exploring "try every
+      possibility from here" so short to write.
+    </p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 What is backtracking?</h2>
+    <p>
+      DFS by itself just explores everything. <strong>Backtracking</strong> is
+      DFS with one extra habit: after you make a choice and fully explore
+      everything that follows from it, you <em>undo</em> that choice before
+      trying the next one, so every new attempt starts from a clean slate. Three
+      steps, every time: <strong>choose</strong> something, <strong>explore</strong>
+      what happens next, then <strong>un-choose</strong> it again.
+    </p>
+    <p>
+      Here's that pattern solving a different, smaller problem: printing every
+      possible order to arrange 3 differently-colored blocks, using each color
+      exactly once.
+    </p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def arrange(chosen, remaining):
+    if not remaining:
+        print("Order:", chosen)
+        return
+    for color in remaining:
+        chosen.append(color)                                # choose
+        new_remaining = [c for c in remaining if c != color]
+        arrange(chosen, new_remaining)                       # explore
+        chosen.pop()                                         # un-choose
+
+arrange([], ["red", "blue", "green"])
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>
+      Run it: you'll see all 6 orderings. The <code>chosen.pop()</code> line at
+      the end is the "un-choose" step, and it's the entire reason this works:
+      without it, the <code>chosen</code> list from the "red" branch would still
+      have "red" stuck in it when the loop moves on to try "blue" first instead,
+      and every later answer would come out wrong.
+    </p>
+    <p>
+      For the Eight Queens problem, the same three-step pattern applies, with
+      one addition: before you even bother exploring a choice, you first check
+      whether it's <em>safe</em> (doesn't conflict with a queen already placed).
+      If it isn't safe, skip it immediately, no exploring, no undoing needed,
+      you just never chose it in the first place. That single check is what
+      turns "try all 16 million placements" into "only ever explore placements
+      that could possibly work," which is the entire reason backtracking is fast
+      enough to actually run.
+    </p>
+    <p>Here's a trace of that happening for real, solving a smaller 4&times;4 version of the puzzle (4 queens on a 4&times;4 board) so it fits on one screen:</p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+Row 0: try col 0 -> no queens placed yet, so it's safe. Place it. Go to row 1.
+Row 1: try col 0 -> same column as row 0's queen. Conflict, skip.
+Row 1: try col 1 -> diagonal from row 0's queen (1 row, 1 col apart). Conflict, skip.
+Row 1: try col 2 -> 1 row, 2 cols apart. Different. Safe! Place it. Go to row 2.
+Row 2: try col 0 -> conflict.  Row 2: try col 1 -> conflict.
+Row 2: try col 2 -> conflict.  Row 2: try col 3 -> conflict.
+  Every column in row 2 conflicts! No way forward from here.
+  BACKTRACK: undo row 1's queen, try the next column in row 1 instead.
+Row 1: try col 3 -> safe! Place it. Go to row 2.
+Row 2: try col 0 -> conflict.  Row 2: try col 1 -> safe! Place it. Go to row 3.
+Row 3: try col 0, 1, 2, 3 -> every single one conflicts.
+  Dead end again! BACKTRACK to row 2, try the next column.
+Row 2: try col 2 -> conflict.  Row 2: try col 3 -> conflict.
+  Row 2 is out of columns too! BACKTRACK to row 1.
+Row 1: out of columns too! BACKTRACK all the way back to row 0.
+Row 0: undo col 0, try col 1 instead...
+  (eventually finds a full solution: queens at columns [1, 3, 0, 2])
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Real backtracking trace, generated while building this site</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p class="worksheet-note">
+      Notice that "Row 0: try col 0" leads to a huge amount of dead-end
+      exploring, several rows deep, before finally giving up on column 0
+      entirely and backing all the way up to row 0. That's normal. Backtracking
+      doesn't avoid dead ends, it just abandons them the moment they're
+      detected (as soon as a row runs out of safe columns), instead of only
+      after wastefully filling in the rest of the board first.
+    </p>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do</span>
+    <h2>🔨 Write it in Python</h2>
+    <p>
+      Write <code>solve_n_queens(n)</code>: given a board size <code>n</code>,
+      return a list of <em>every</em> valid arrangement of <code>n</code> queens
+      on an <code>n</code>&times;<code>n</code> board (for the actual "eight
+      queens" puzzle, you'll call this with <code>n = 8</code>, but writing it
+      to work for any <code>n</code> makes it much easier to test as you go,
+      the same way the trace above used a smaller 4&times;4 board to stay
+      readable). Represent one solution as a list of <code>n</code> numbers,
+      where <code>solution[row]</code> is the column of the queen placed in
+      that row. The board shown earlier, for example, is
+      <code>[0, 4, 7, 5, 2, 6, 1, 3]</code> (columns numbered from 0).
+    </p>
+    <p>
+      This time, the starter code below gives you almost nothing except the
+      two function signatures and the self-check at the bottom: you're
+      writing both <code>is_safe</code> and the entire recursive search
+      yourself, using only the ideas from this page (the diagonal-distance
+      rule, and the choose / explore / un-choose pattern from the
+      color-arranging example) as your guide, not filled-in code to complete.
+    </p>
+    <ol>
+      <li>
+        <strong><code>is_safe</code></strong> decides whether placing a new
+        queen at <code>(row, col)</code> would conflict with any queen already
+        placed. Both checks (same column, same diagonal) are yours to write.
+      </li>
+      <li>
+        <strong><code>backtrack</code></strong> is the search itself: both the
+        base case (what happens once every row is filled) and the recursive
+        case (try each column, and for every safe one, choose it, explore it,
+        then un-choose it) are yours to write, the same shape as the
+        color-arranging example but applied to queens.
+      </li>
+    </ol>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def is_safe(board, row, col):
+    # `board` is a list of the columns already used, one entry per row
+    # placed so far. For example, board == [2, 0] means: the queen in
+    # row 0 is in column 2, and the queen in row 1 is in column 0.
+    #
+    # Return True if placing a NEW queen at (row, col) does not conflict
+    # with any queen already in `board`, and False if it does. Two queens
+    # conflict if they share a column, or if they share a diagonal (the
+    # distance between their rows equals the distance between their
+    # columns -- the rule from earlier on this page).
+    raise NotImplementedError()
+
+
+def solve_n_queens(n):
+    # Return a list of every valid solution for an n x n board, where each
+    # solution is a list of n column numbers, one per row (see the example
+    # near the top of this page).
+    solutions = []
+    board = []
+
+    def backtrack(row):
+        # Write the full backtracking search here, using the same
+        # choose / explore / un-choose pattern as the color-arranging
+        # example earlier on this page:
+        #   - base case: if `row` equals n, every row has a queen placed.
+        #     Save a COPY of `board` into `solutions` (board[:] makes a
+        #     copy; just `board` would let later changes silently corrupt
+        #     every solution you've already saved) and return.
+        #   - otherwise: try every column 0 through n - 1 in this row.
+        #     For each one is_safe accepts: CHOOSE it (add to board),
+        #     EXPLORE (call backtrack on the next row), then UN-CHOOSE it
+        #     (remove it from board) before trying the next column.
+        raise NotImplementedError()
+
+    backtrack(0)
+    return solutions
+
+
+# Self-check: compare against the known number of solutions for each size.
+known_counts = {1: 1, 2: 0, 3: 0, 4: 2, 5: 10, 6: 4, 7: 40, 8: 92}
+for n, expected in known_counts.items():
+    actual = len(solve_n_queens(n))
+    status = "OK" if actual == expected else "MISMATCH"
+    print(f"n={n}: got {actual}, expected {expected}  [{status}]")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="30"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Run it once before changing anything: you'll get a clean
+      <code>NotImplementedError</code> right away, not a confusing crash.
+      That's expected, it's just telling you nothing's written yet. Once
+      you've written both functions, run it again: the self-check loop
+      compares your answer against the known, correct number of solutions for
+      boards sized 1 through 8; if every line says <code>OK</code>, your
+      solver is correct, not just "didn't crash." If you get stuck, scroll
+      back up to the DFS and backtracking examples above; the queens search
+      has exactly the same shape as the color-arranging one, just with
+      <code>is_safe</code> deciding which choices are even worth exploring.
+    </p>
+    <button class="reveal-btn btn btn-outline" data-target="solved-eight-queens" data-hide-label="Hide solution" type="button">See a full solution (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-eight-queens">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+def is_safe(board, row, col):
+    for r in range(row):
+        c = board[r]
+        if c == col or abs(row - r) == abs(col - c):
+            return False
+    return True
+
+def solve_n_queens(n):
+    solutions = []
+    board = []
+
+    def backtrack(row):
+        if row == n:
+            solutions.append(board[:])
+            return
+        for col in range(n):
+            if is_safe(board, row, col):
+                board.append(col)
+                backtrack(row + 1)
+                board.pop()
+
+    backtrack(0)
+    return solutions
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Python</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <p class="worksheet-note">
+        Confirmed while building this site: this exact code reports
+        <code>OK</code> for all eight sizes, 1 through 8. Notice
+        <code>is_safe</code> only ever has to look at rows already placed, and
+        <code>board.pop()</code> right after each recursive call is what
+        actually makes this backtracking instead of just a nested loop; without
+        it, columns from an abandoned attempt would stick around and corrupt
+        every later attempt in the same branch, exactly the same bug as
+        forgetting <code>chosen.pop()</code> in the color-arranging example
+        earlier.
+      </p>
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Stretch goal</span>
+    <h2>🌟 Go further</h2>
+    <p>Once <code>solve_n_queens(8)</code> reports all 92 solutions correctly, here are a few directions to take it, in roughly increasing order of difficulty:</p>
+    <ul>
+      <li>Write a function that takes one solution (a list like <code>[0, 4, 7, 5, 2, 6, 1, 3]</code>) and prints it as an actual board of <code>Q</code>s and <code>.</code>s, the way it's shown at the top of this page.</li>
+      <li>How many of the 92 solutions are actually the <em>same</em> arrangement, just rotated or reflected? (The real answer is 92 total, 12 "fundamentally different" ones.) Try writing a function that rotates a solution 90 degrees, and see how many of the 92 turn out to be rotations of each other.</li>
+      <li><code>n = 8</code> runs almost instantly, but this same code gets slow fast as <code>n</code> grows (try <code>n = 12</code> or higher). Look up "bitmask backtracking for n-queens" and see if you can make your solver noticeably faster using the same overall backtracking idea.</li>
+    </ul>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+<script src="js/codeblock.js"></script>
+<script src="js/playground.js"></script>
+<script src="js/reveal.js"></script>
+</body>
+</html>

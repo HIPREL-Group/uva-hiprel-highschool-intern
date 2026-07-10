@@ -1,0 +1,1506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 3: Learning Rust &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <span class="day-badge">Day 3 &middot; Wed Jul 8</span>
+  <h1>Learning Rust</h1>
+  <p class="lead">Most of today is <em>not</em> about writing a Rust program from a blank page: it's about being able to look at a Rust program and understand what it's doing. Every exercise gives you a program that's almost right, with one small thing broken; your job is to find it, understand why it's wrong, and fix it. Near the end, once that's second nature, you'll get a chance to write some small Rust of your own, with as much or as little help as you want.</p>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Variables, and a very Rust idea: <code>mut</code></h2>
+    <p>
+      A <strong>variable</strong> is just a name a program uses to refer to a value,
+      so you don't have to keep repeating that value everywhere. Instead of writing
+      the number <code>17</code> five times in your code, you give it a name once
+      (say, <code>n</code>) and then use <code>n</code> everywhere you mean "that
+      value." In Python you wrote <code>n = 17</code> to create one. In Rust, you
+      write <code>let n = 17;</code>: the word <code>let</code> is how Rust says
+      "create a new variable," and the semicolon marks the end of that instruction.
+    </p>
+    <p>
+      Every value in Rust has a <strong>type</strong>: a category that says what
+      <em>kind</em> of thing it is and what you're allowed to do with it. Rust can
+      usually figure out the type automatically just from the value you wrote (this
+      is called <strong>type inference</strong>), but you can also spell it out
+      explicitly with a colon, like <code>let n: i32 = 17;</code>. That
+      <code>i32</code> is the name of a type, and it's worth knowing exactly what it
+      means, since you'll see it constantly this week:
+    </p>
+    <ul>
+      <li>The <strong>i</strong> stands for <strong>integer</strong>: a whole number, with no decimal point, that can be negative, zero, or positive.</li>
+      <li>The <strong>32</strong> is how many <strong>bits</strong> of computer memory are set aside to store it. A bit is the smallest unit of memory a computer has: it's like a tiny switch that can only be off (0) or on (1). Using 32 of these switches together, a computer can represent a little over 4.3 billion distinct values.</li>
+      <li>Split between negative and positive numbers, that gives <code>i32</code> a range of about <strong>&minus;2.1 billion to +2.1 billion</strong>. A number bigger or smaller than that simply doesn't fit in 32 bits; you'll see this cause a real, genuine problem later this week, not just a hypothetical one.</li>
+    </ul>
+    <p>
+      This is different from Python, where whole numbers can be as large as your
+      computer's memory allows, growing automatically as needed. Rust asks you to
+      pick a fixed size up front (there are other integer types too, like the
+      smaller <code>i8</code> or the larger <code>i64</code>, but <code>i32</code> is
+      the everyday default we'll use all week) because fixed-size numbers are what
+      computer hardware works with directly, which makes Rust programs fast and
+      lets the compiler double-check your arithmetic before the program ever runs.
+    </p>
+    <p>
+      Here's the genuinely new idea for today: <strong>in Rust, a variable can't be
+      changed after it's created, unless you say so.</strong> Write
+      <code>let mut counter = 0;</code> (<code>mut</code> is short for
+      <strong>mutable</strong>, meaning "changeable") if you plan to update it
+      later. Leave out <code>mut</code>, and Rust treats that variable as fixed
+      forever after its first value: this is called <strong>immutable</strong>. This
+      is different from Python or most other languages you might have heard of,
+      where every variable can always be reassigned at any time. Rust's design
+      philosophy is to catch mistakes early: if you never intended to change a
+      variable, and your code accidentally tries to anyway (a typo, or a line you
+      forgot you wrote), Rust refuses to even compile the program, instead of
+      letting that mistake slip through silently.
+    </p>
+    <p>Here's the same idea in Python, where this isn't a problem at all, since every Python variable can always be reassigned:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+n = 17
+print(f"n is {n}")
+
+counter = 0
+counter = counter + 1
+counter = counter + 1
+print(f"counter is {counter}")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>The code below is trying to count up to 2, but it won't even compile yet. Click Run, read the error carefully, and fix it.</p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let n = 17;
+    println!("n is {}", n);
+
+    // This is supposed to count up to 2, but Rust won't allow it as written.
+    // Read the error message below and fix this one line.
+    let counter = 0;
+    counter = counter + 1;
+    counter = counter + 1;
+    println!("counter is {}", counter);
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="11"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Here's the exact error, captured for reference in case you want to compare or the server is unreachable:</p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+error[E0384]: cannot assign twice to immutable variable `counter`
+ --> src/main.rs:8:5
+  |
+7 |     let counter = 0;
+  |         ------- first assignment to `counter`
+8 |     counter = counter + 1;
+  |     ^^^^^^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
+  |
+help: consider making this binding mutable
+  |
+7 |     let mut counter = 0;
+  |         +++
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Real rustc output</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p class="worksheet-note">
+      Notice the compiler doesn't just say "error": it tells you exactly which line,
+      exactly what's wrong, and even suggests the fix. Reading Rust error messages
+      carefully, instead of panicking at red text, is a real skill you'll use all
+      week: today, that skill <em>is</em> the exercise.
+    </p>
+
+    <h3>A second example: predict, then check</h3>
+    <p>Here's the same program in Python:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+score = 0
+score += 10
+score += 5
+score -= 3
+print(f"final score: {score}")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="6"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>This one already works, and uses <code>mut</code> correctly. Before you click Run, read it line by line and write down what you think the final score will be, then run it to check yourself.</p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let mut score = 0;
+    score += 10;
+    score += 5;
+    score -= 3;
+    println!("final score: {}", score);
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note"><code>score += 10;</code> is shorthand for <code>score = score + 10;</code>: update the variable using its own current value. You've already seen this exact shorthand in the judge you built on Day 2 (<code>passed += 1;</code>), and you'll see it again today.</p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 The basic types you'll actually use</h2>
+    <p>Besides <code>i32</code>, there are three more basic types worth knowing exactly:</p>
+    <ul>
+      <li><strong><code>f64</code></strong>: a number that's allowed to have digits after a decimal point, like <code>3.9</code>. The <strong>f</strong> stands for <strong>floating-point</strong> (the decimal point can "float" to different positions, which is how the same 64 bits can represent both very large and very tiny decimal values), and the <strong>64</strong> is again how many bits of memory it uses: more than <code>i32</code>'s 32, since decimal numbers need extra room to store the digits after the point.</li>
+      <li><strong><code>char</code></strong>: exactly one single character, like a letter, digit, or punctuation mark, always written in single quotes: <code>'A'</code>. This is different from text made of many characters, which Rust calls a <code>String</code> and writes in double quotes, like <code>"Ada"</code>.</li>
+      <li><strong><code>bool</code></strong>: short for <strong>boolean</strong>, named after the mathematician George Boole. A <code>bool</code> can only ever be exactly one of two values: <code>true</code> or <code>false</code>. You've actually been reading this type constantly since Day 1: <code>is_leap</code> always returns a <code>bool</code>.</li>
+    </ul>
+    <p>Here's the same values in Python, where you never have to write down a type at all:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+age = 16
+gpa = 3.9
+initial = 'A'
+is_ready = True
+print(age, gpa, initial, is_ready)
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="6"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>Four variables below have the wrong type on purpose: each one is labeled with a type that belongs to a <em>different</em> line. Read the four compiler errors and match each value to its correct type.</p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let age: bool = 16;          // whole number
+    let gpa: i32 = 3.9;          // decimal number
+    let initial: f64 = 'A';      // a single character
+    let is_ready: char = true;   // true or false
+
+    println!("{} {} {} {}", age, gpa, initial, is_ready);
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="9"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Each of the four errors reads "expected X, found Y." That's the compiler telling you precisely which type belongs on that line. You've already seen <code>i32</code> and <code>bool</code> all week in <code>is_leap</code>'s signature; now you know where they come from.</p>
+
+    <h3>A second example: numbers don't automatically convert</h3>
+    <p>
+      One more genuine surprise: even though <code>i32</code> and <code>f64</code> are
+      both "numbers," Rust never automatically converts one into the other. Fix the
+      line below so it compiles; read the error's suggestion carefully.
+    </p>
+    <p>Here's the contrast in Python, which happily mixes whole numbers and decimals:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+x = 5
+y = x
+print(y + 2.5)
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="4"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let x: i32 = 5;
+    let y: f64 = x;
+    println!("{}", y);
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="6"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Most other languages you may have heard of quietly convert whole numbers into decimals for you. Rust makes you do it on purpose (usually with <code>.into()</code> or <code>as f64</code>), on the theory that a silent, invisible conversion is exactly the kind of thing that hides a real bug.</p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Functions: types are required, and the last line is the answer</h2>
+    <p>
+      A <strong>function</strong> is a named, reusable block of instructions. You've
+      used dozens of them already this week: <code>is_leap</code>, <code>is_prime</code>,
+      and <code>judge</code> are all functions. A function can accept input values,
+      called <strong>parameters</strong>, and produce an output value, called its
+      <strong>return value</strong>. In Python you'd write
+      <code>def add(a, b): return a + b</code>: <code>def</code> starts the
+      definition, <code>a</code> and <code>b</code> are parameters with no type
+      attached, and <code>return</code> explicitly says what comes back.
+    </p>
+    <p>
+      Rust's version looks like <code>fn add(a: i32, b: i32) -> i32 { a + b }</code>,
+      and every piece of it is required, not optional:
+    </p>
+    <ul>
+      <li><code>fn</code> is short for <strong>function</strong>, the same role as Python's <code>def</code>.</li>
+      <li>Each parameter needs both a name <em>and</em> a type, separated by a colon: <code>a: i32</code> means "a parameter named <code>a</code>, which must be an <code>i32</code>." Rust insists on this so it can check, before your program ever runs, that every value flowing through your code is the kind of value it's supposed to be.</li>
+      <li><code>-&gt; i32</code> (read "returns i32") declares the type of the answer the function produces. This has to be written even if it seems obvious.</li>
+      <li>Notice there's no <code>return</code> keyword and no semicolon on <code>a + b</code>. In Rust, if the very last line of a function has no semicolon, its value automatically becomes the function's return value. A semicolon marks the end of an ordinary instruction that doesn't hand back a value; leaving it off on the last line is what makes that line the answer.</li>
+    </ul>
+    <p>Here's the same function in Python, with no types anywhere:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def add(a, b):
+    return a + b
+
+print(add(3, 4))
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="5"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>The function below is supposed to add two numbers, but the types are
+      wrong; fix them so it compiles and prints <code>7</code>.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn add(a: bool, b: bool) -> bool {
+    a + b   // no `return`, no semicolon: this is the value the function produces
+}
+
+fn main() {
+    println!("{}", add(3, 4));
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      The first error, "cannot add <code>bool</code> to <code>bool</code>," is Rust
+      telling you <code>+</code> doesn't mean anything for true/false values. Once you
+      pick the right type for <code>a</code>, <code>b</code>, and the return type, both
+      errors disappear together. You can still write <code>return a + b;</code> with a
+      semicolon if you want; both are correct Rust.
+    </p>
+
+    <h3>A second example: the return type has to match too</h3>
+    <p>
+      It's not just parameters: the value a function actually produces has to match
+      its declared return type as well. This one is supposed to check whether a
+      number is even. Fix its return type.
+    </p>
+    <p>Here's the same function in Python:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def is_even(n):
+    return n % 2 == 0
+
+print(is_even(4))
+print(is_even(7))
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="6"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn is_even(n: i32) -> i32 {
+    n % 2 == 0
+}
+
+fn main() {
+    println!("{}", is_even(4));
+    println!("{}", is_even(7));
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note"><code>n % 2 == 0</code> is a comparison, so its value is always a <code>bool</code> (<code>true</code> or <code>false</code>), never an <code>i32</code>. The error, "expected <code>i32</code>, found <code>bool</code>," is telling you the signature promised one thing and the body delivers another.</p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Operators</h2>
+    <p>An <strong>operator</strong> is a symbol that combines values to produce a new one, like <code>+</code> or <code>&gt;</code>. Rust's arithmetic operators are the ones you already know: <code>+</code> add, <code>-</code> subtract, <code>*</code> multiply, <code>/</code> divide, and <code>%</code> "modulo," meaning the remainder left over after dividing (you've been reading <code>%</code> all week in <code>year % 4</code>). Its comparison operators produce a <code>bool</code>: <code>==</code> equal, <code>!=</code> not equal, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>. Combining true/false values is spelled differently than in Python: <code>&amp;&amp;</code> instead of <code>and</code> (true only if <em>both</em> sides are true), <code>||</code> instead of <code>or</code> (true if <em>at least one</em> side is true), and <code>!</code> instead of <code>not</code> (flips true to false and back).</p>
+    <p class="worksheet-note">One real surprise if you're coming from Python: dividing two whole numbers with <code>/</code> in Rust always gives back a whole number, throwing away anything after the decimal point, rather than automatically becoming a decimal like Python's <code>/</code> does. <code>7 / 2</code> is <code>3</code>, not <code>3.5</code>. Watch for this below.</p>
+    <p>Here's the same expressions in Python; notice <code>a / b</code> behaves differently:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+a = 7
+b = 2
+print(a + b, a - b, a * b, a / b, a % b)
+print(a > b, a == b)
+print(a > 0 and b > 0)
+print(a > 100 or b > 0)
+print(not (a == b))
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>This one already works: before you click Run, read it line by line and write down what you think each line will print, then check yourself.</p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let a = 7;
+    let b = 2;
+    println!("{} {} {} {} {}", a + b, a - b, a * b, a / b, a % b);
+    println!("{} {}", a > b, a == b);
+    println!("{}", a > 0 && b > 0);
+    println!("{}", a > 100 || b > 0);
+    println!("{}", !(a == b));
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="9"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">This is exactly the style of expression you've been reading all week in <code>is_leap</code>: <code>year % 4 == 0 &amp;&amp; (year % 100 != 0 || year % 400 == 0)</code>. You've been reading real Rust operators since Day 1, whether or not you noticed at the time.</p>
+
+    <h3>A second example: modulo tells you more than just "even or odd"</h3>
+    <p>Here's the same loop in Python:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+for n in [4, 7, 10, 13]:
+    print(f"{n}: even={n % 2 == 0} remainder={n % 2}")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="4"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>Predict each line's output before running this one. It reuses <code>%</code> from <code>is_leap</code>, applied to a smaller, easier-to-check case.</p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    for n in [4, 7, 10, 13] {
+        println!("{}: even={} remainder={}", n, n % 2 == 0, n % 2);
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="7"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note"><code>n % 2</code> is the actual remainder (always 0 or 1 here); <code>n % 2 == 0</code> is a separate comparison built on top of it, asking "is that remainder exactly zero?" The same pattern, generalized to <code>% 4</code>, <code>% 100</code>, and <code>% 400</code>, is the entire leap-year rule.</p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 <code>if</code>/<code>else</code> is an expression, and loops</h2>
+    <p>
+      An <code>if</code>/<code>else</code> lets a program choose between two
+      different paths depending on whether a condition is <code>true</code> or
+      <code>false</code>. The shape looks a lot like Python's, but with two syntax
+      differences: Rust doesn't need parentheses around the condition, and it always
+      needs curly braces <code>{ }</code> around each branch's body (Python uses a
+      colon and indentation instead).
+    </p>
+    <p>
+      Here's a genuinely different idea from Python, though: in Rust,
+      <code>if</code>/<code>else</code> itself produces a value, the same way a
+      function's last line does. In Python, <code>if</code>/<code>else</code> just
+      chooses which instructions to run; it isn't something you can save into a
+      variable. In Rust, the whole <code>if</code>/<code>else</code> block evaluates
+      to whichever branch actually ran, so you can hand it directly back as a
+      function's answer, or store it straight into a variable, with no separate
+      <code>return</code> needed. The function below is supposed to compute absolute
+      value (always a non-negative result: turn any negative number positive, and
+      leave positive numbers alone), but it has the two branches backwards. Run it,
+      notice both outputs are wrong the same way, and fix it.
+    </p>
+    <p>Here's the same function in Python. Notice Python needs an explicit <code>return</code> in each branch, since its <code>if</code>/<code>else</code> doesn't produce a value the way Rust's does:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def abs_value(n):
+    if n < 0:
+        return -n
+    else:
+        return n
+
+print(abs_value(-5))
+print(abs_value(5))
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="9"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn abs_value(n: i32) -> i32 {
+    if n < 0 {
+        n
+    } else {
+        -n
+    }
+}
+
+fn main() {
+    println!("{}", abs_value(-5));
+    println!("{}", abs_value(5));
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="12"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Absolute value should never be negative, so seeing <code>-5</code> printed twice is your signal something's backwards, exactly like spotting a wrong answer in Day 1's bug hunt.</p>
+
+    <h3>A second example: chaining more than two branches</h3>
+    <p>
+      <code>if</code>/<code>else</code> chains can have more than two branches, using
+      <code>else if</code> in between, checked top to bottom until one matches.
+      Order matters, the exact same lesson from Day 1's letter-grade bugs: this one
+      is supposed to give letter grades (90+ is A, 80&ndash;89 is B, 60&ndash;79 is
+      C, below 60 is F), but two branches are out of order. Run it, notice
+      <code>letter_grade(85)</code> gives the wrong letter, and fix the order.
+    </p>
+    <p>Here's the same logic in Python (<code>elif</code> instead of <code>else if</code>):</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def letter_grade(score):
+    if score >= 90:
+        return 'A'
+    elif score >= 60:
+        return 'C'
+    elif score >= 80:
+        return 'B'
+    else:
+        return 'F'
+
+print(letter_grade(85))   # should be 'B'
+print(letter_grade(65))   # should be 'C'
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="13"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn letter_grade(score: i32) -> char {
+    if score >= 90 {
+        'A'
+    } else if score >= 60 {
+        'C'
+    } else if score >= 80 {
+        'B'
+    } else {
+        'F'
+    }
+}
+
+fn main() {
+    println!("{}", letter_grade(85));   // should be 'B'
+    println!("{}", letter_grade(65));   // should be 'C'
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="15"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">85 satisfies <em>both</em> <code>&gt;= 60</code> and <code>&gt;= 80</code>, but Rust stops at the first branch that matches, top to bottom. Since <code>&gt;= 60</code> comes first here, 85 never even reaches the <code>&gt;= 80</code> check. The fix is putting the stricter conditions first.</p>
+
+    <p>
+      A <strong>loop</strong> repeats a block of code, so you don't have to write
+      the same instruction over and over by hand. Rust has two you'll use
+      constantly. A <code>for</code> loop repeats once for every number in a
+      <strong>range</strong>: <code>0..10</code> means "start at 0, and stop right
+      before 10," the exact same convention as Python's <code>range(0, 10)</code>;
+      the number after <code>..</code> is never included. A <code>while</code> loop
+      instead repeats for as long as a condition stays <code>true</code>, checking
+      that condition again before every single repeat; you're responsible for
+      eventually making the condition false yourself (usually by changing a
+      variable inside the loop), or it will keep repeating forever. The program
+      below is supposed to count up from 1 to 10, then count down from 5 to 1. Run
+      it, compare the actual output to that description, and fix both loops.
+    </p>
+    <p>Here's the same code in Python, including the same bugs, to help you read it:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+for i in range(0, 10):
+    print(f"counting up: {i}")
+
+n = 5
+while n > -1:
+    print(f"counting down: {n}")
+    n -= 1
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    for i in 0..10 {
+        println!("counting up: {}", i);
+    }
+
+    let mut n = 5;
+    while n > -1 {
+        println!("counting down: {}", n);
+        n -= 1;
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="11"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note"><code>0..10</code> means "0 up to, but not including, 10", the same convention Python's <code>range(0, 10)</code> uses; that's why the first loop is off by one at both ends. The second loop runs one extra time at the bottom for a similar reason: check exactly which values <code>n &gt; -1</code> allows through.</p>
+
+    <h3>A second example: loops that build up an answer</h3>
+    <p>
+      A very common pattern: use a <code>mut</code> variable to accumulate a result
+      across every trip through a loop, exactly like <code>passed</code> in your
+      Day 2 judge. This one is supposed to add up 1 through 5 (which should total
+      15). Run it, and fix the one off-by-one mistake.
+    </p>
+    <p>Here's the same code in Python, including the same bug:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+total = 0
+for i in range(1, 5):
+    total = total + i
+print(f"sum is {total}")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="5"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let mut sum = 0;
+    for i in 1..5 {
+        sum = sum + i;
+    }
+    println!("sum is {}", sum);
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">This is the same shape as your judge's scoring loop: start a <code>mut</code> variable at 0 before the loop, update it once per trip through, and read the final value after the loop ends.</p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Arrays: a list of values of the same type</h2>
+    <p>
+      An <strong>array</strong> is an ordered list of values, all of the same type,
+      written with square brackets: <code>[4, 7, 10, 13, 16]</code>. You've actually
+      been using these all week without the name: every test-case list and every
+      <code>for n in [...]</code> line has been looping over an array, one element
+      at a time, in order. The variable name in a <code>for</code> loop
+      (<code>n</code> below) takes on each element's value in turn.
+    </p>
+    <p>
+      This one is supposed to count how many numbers in the list are even, and
+      should print <code>3</code> (4, 10, and 16 are the even ones). Run it, notice
+      the count is wrong, and fix the condition.
+    </p>
+    <p>Here's the same code in Python, including the same bug:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+numbers = [4, 7, 10, 13, 16]
+even_count = 0
+for n in numbers:
+    if n % 2 == 1:
+        even_count += 1
+print(f"even count: {even_count}")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="7"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let numbers = [4, 7, 10, 13, 16];
+    let mut even_count = 0;
+    for n in numbers {
+        if n % 2 == 1 {
+            even_count += 1;
+        }
+    }
+    println!("even count: {}", even_count);
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note"><code>n % 2 == 1</code> checks for <em>odd</em> numbers, not even ones; that's the entire bug. The rest of the pattern, a <code>mut</code> counter updated once per matching element, is exactly what your Day 2 judge does with <code>passed</code>.</p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Tuples: grouping a few values together, then pulling them back apart</h2>
+    <p>
+      A <strong>tuple</strong> groups a small, fixed number of values, possibly of
+      different types, into a single unit, written in parentheses:
+      <code>(2000, true)</code> pairs a whole number with a true/false value. This is
+      precisely the shape your Day 2 judge's test cases used. To get the individual
+      pieces back out, Rust lets you <strong>destructure</strong> a tuple right in a
+      <code>for</code> loop: writing <code>for (year, expected) in pairs</code> gives
+      you both pieces as two separate, named variables, instead of one bundled-up
+      value.
+    </p>
+    <p>
+      This program already works: it checks a simplified rule ("divisible by 4")
+      against a list of expected answers. Predict each line's output before running
+      it, paying attention to which check turns out to agree with the expected
+      answer and which doesn't.
+    </p>
+    <p>Here's the same code in Python:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+pairs = [(2000, True), (1900, False), (2024, True), (2023, False)]
+for year, expected in pairs:
+    actual = year % 4 == 0
+    if actual == expected:
+        print(f"{year}: match (both say {actual})")
+    else:
+        print(f"{year}: mismatch (this check says {actual}, expected {expected})")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="8"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let pairs = [(2000, true), (1900, false), (2024, true), (2023, false)];
+    for (year, expected) in pairs {
+        let actual = year % 4 == 0;
+        if actual == expected {
+            println!("{}: match (both say {})", year, actual);
+        } else {
+            println!("{}: mismatch (this check says {}, expected {})", year, actual, expected);
+        }
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="11"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      1900 is where it goes wrong: it's divisible by 4, but it's <em>not</em> a real
+      leap year, because of the century exception your full <code>is_leap</code>
+      rule accounts for and this simplified <code>year % 4 == 0</code> check
+      doesn't. This whole program is a miniature version of the judge you already
+      built: a list of <code>(input, expected)</code> tuples, a candidate check, and
+      a comparison, just without a separate <code>judge</code> function wrapping it up.
+    </p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 A closer look at <code>println!</code>, and a peek at <code>&amp;</code></h2>
+    <p>
+      You've used <code>println!</code> in every single Rust program so far. The
+      <code>!</code> at the end means it's a <strong>macro</strong>, not an ordinary
+      function: macros are allowed to do things regular functions can't, like accept
+      a different number of arguments each time you call them. Inside the quoted
+      text, each <code>{}</code> is a placeholder, filled in order by the arguments
+      listed after the comma. The number of <code>{}</code> placeholders has to
+      exactly match the number of arguments you provide. Fix the line below so it
+      compiles.
+    </p>
+    <p>Here's the same idea in Python, using an f-string:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+name = "Rust"
+day = 3
+print(f"Hello, {name}! This is day {day}")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="4"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn main() {
+    let name = "Rust";
+    let day = 3;
+    println!("Hello, {}! This is day {}", name);
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="6"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">The error, "2 positional arguments in format string, but there is 1 argument," is the compiler counting the <code>{}</code> placeholders for you. Add <code>day</code> as a second argument after <code>name</code> to fix it.</p>
+    <p>
+      One more symbol you'll see starting tomorrow, worth recognizing even though we
+      won't dwell on it today: an <code>&amp;</code> in front of a value, like in
+      <code>&amp;test_cases</code> or the type <code>&amp;[(i32, bool)]</code> in your
+      Day 2 judge skeleton. In plain terms, <code>&amp;</code> means "let this code
+      look at the value without taking it away permanently": the value still belongs
+      to wherever it came from, and this is just borrowing a look at it. The full
+      story behind <code>&amp;</code> (Rust calls it a <strong>reference</strong>) is
+      one of Rust's more advanced ideas, and you don't need to master it today; just
+      recognize it and know roughly what it's for when you see it.
+    </p>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do</span>
+    <h2>🔨 Read, don't write: fix the translated <code>is_prime</code></h2>
+    <p>
+      Here's the naive <code>is_prime</code> from Day 2, as a reminder (in Python, not runnable here):
+    </p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def is_prime(n):
+    if n < 2:
+        return False
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            return False
+        i += 1
+    return True
+
+for n in [-5, 0, 1, 2, 3, 4, 17, 20, 97]:
+    print(n, "->", is_prime(n))
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python (Day 2, for reference)</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="14"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>
+      Below is that same logic already translated into Rust by someone in a hurry, who
+      made three small mistakes. You don't need to write this from scratch: everything
+      you need is in the code already. Run it, compare the output to what you know
+      about primes (2, 3, 17, and 97 are prime; 0, 1, 4, and 20 are not), and fix the
+      three lines that don't match.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn is_prime(n: i32) -> bool {
+    if n <= 2 {
+        return false;
+    }
+    let mut i = 2;
+    while i * i < n {
+        if n % i == 0 {
+            return false;
+        }
+        i += 1;
+    }
+    false
+}
+
+fn main() {
+    for n in [-5, 0, 1, 2, 3, 4, 17, 20, 97] {
+        println!("{} -> {}", n, is_prime(n));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="callout tip">
+      <strong>Hint, if you get stuck:</strong> compare each line one at a time against
+      the Python version above. Two of the three mistakes are a comparison operator
+      that's one symbol off from correct; the third is the value returned at the very
+      end of the function.
+    </div>
+
+    <button class="reveal-btn btn btn-outline" data-target="solved-is-prime" data-hide-label="Hide solved version" type="button">See the solved version (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-is-prime">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+fn is_prime(n: i32) -> bool {
+    if n < 2 {
+        return false;
+    }
+    let mut i = 2;
+    while i * i <= n {
+        if n % i == 0 {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Rust</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+    <div class="callout tip">
+      <strong>Optional:</strong> if you finish early, ask an AI to translate the same
+      Python function into Rust from scratch and compare its answer to this one. Then
+      try dropping both versions into a Rust judge, using the same
+      <code>fn(i32) -&gt; bool</code> design from Day 2, just written in Rust this time.
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do</span>
+    <h2>🔨 Now write some yourself</h2>
+    <p>
+      Everything so far today has been about reading. These last six exercises flip
+      that around, one step at a time: two programs that are mostly written for you
+      and just need one line completed, two working programs to extend with a new
+      function of your own, and two whole small functions to write from nothing but a
+      description. Do as many as you have time for; even just the first one is real
+      progress.
+    </p>
+
+    <h3>1. Complete the incomplete program</h3>
+    <p>
+      <strong>Problem:</strong> write <code>sum_of_digits(n)</code>, which adds up the
+      individual digits of a whole number. For example, <code>sum_of_digits(259)</code>
+      should be <code>2 + 5 + 9 = 16</code>. Assume <code>n</code> is never negative.
+    </p>
+    <p>
+      The overall shape is already written for you below: a loop that peels one digit
+      off the end of the number at a time, using <code>% 10</code> to read the last
+      digit and <code>/ 10</code> to remove it (the exact same two operators from
+      today's Operators section). One line is wrong on purpose; fix just that line.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn sum_of_digits(n: i32) -> i32 {
+    let mut total = 0;
+    let mut remaining = n;
+    while remaining > 0 {
+        let last_digit = remaining; // TODO: this should be just the last digit, not the whole number
+        total = total + last_digit;
+        remaining = remaining / 10;
+    }
+    total
+}
+
+fn main() {
+    for n in [0, 7, 259, 1000, 999] {
+        println!("{} -> {}", n, sum_of_digits(n));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="16"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="callout tip">
+      <strong>Hint:</strong> you want the remainder when <code>remaining</code> is
+      divided by 10, which pulls off exactly its last digit. You've used this exact
+      operator, on this exact number, in today's second Operators example.
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-sum-digits" data-hide-label="Hide solved version" type="button">See the solved version (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-sum-digits">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+fn sum_of_digits(n: i32) -> i32 {
+    let mut total = 0;
+    let mut remaining = n;
+    while remaining > 0 {
+        let last_digit = remaining % 10;
+        total = total + last_digit;
+        remaining = remaining / 10;
+    }
+    total
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Rust</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+
+    <h3>2. Complete the incomplete program</h3>
+    <p>
+      <strong>Problem:</strong> write <code>reverse_number(n)</code>, which reverses
+      the digits of a whole number. For example, <code>reverse_number(123)</code>
+      should be <code>321</code>. Assume <code>n</code> is never negative.
+    </p>
+    <p>
+      Same shape as before, peeling off one digit at a time, but this time building
+      a brand new number instead of a total: each step shifts what you have so far
+      one place to the left (multiply by 10) before adding the next digit. One line
+      is wrong on purpose; fix just that line.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn reverse_number(n: i32) -> i32 {
+    let mut result = 0;
+    let mut remaining = n;
+    while remaining > 0 {
+        let last_digit = remaining % 10;
+        result = result + last_digit; // TODO: this should shift result left before adding, not just add
+        remaining = remaining / 10;
+    }
+    result
+}
+
+fn main() {
+    for n in [0, 7, 123, 1000, 4567] {
+        println!("{} -> {}", n, reverse_number(n));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="16"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="callout tip">
+      <strong>Hint:</strong> if <code>result</code> is currently <code>12</code> and
+      the next digit is <code>3</code>, you want <code>123</code>, not <code>15</code>.
+      Multiplying <code>result</code> by 10 first makes room for the new digit.
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-reverse" data-hide-label="Hide solved version" type="button">See the solved version (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-reverse">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+fn reverse_number(n: i32) -> i32 {
+    let mut result = 0;
+    let mut remaining = n;
+    while remaining > 0 {
+        let last_digit = remaining % 10;
+        result = result * 10 + last_digit;
+        remaining = remaining / 10;
+    }
+    result
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Rust</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+
+    <h3>3. Extend a working program</h3>
+    <p>
+      <strong>Problem:</strong> now that <code>sum_of_digits</code> works, add a
+      second function, <code>count_digits(n)</code>, that returns how many digits
+      <code>n</code> has (<code>count_digits(259)</code> should be <code>3</code>).
+      This time there's no line-by-line hint: you're extending working code with a
+      new function of your own, using the same loop pattern.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn sum_of_digits(n: i32) -> i32 {
+    let mut total = 0;
+    let mut remaining = n;
+    while remaining > 0 {
+        let last_digit = remaining % 10;
+        total = total + last_digit;
+        remaining = remaining / 10;
+    }
+    total
+}
+
+fn count_digits(n: i32) -> i32 {
+    // TODO: write this one yourself, reusing the loop shape above
+    todo!()
+}
+
+fn main() {
+    for n in [0, 7, 259, 1000, 999] {
+        println!("{} -> sum={} count={}", n, sum_of_digits(n), count_digits(n));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="18"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="callout tip">
+      <strong>Hint, if you get stuck:</strong> <code>sum_of_digits</code> adds
+      <code>last_digit</code> to a running total on every trip through the loop.
+      <code>count_digits</code> needs the same loop, just adding <code>1</code>
+      instead.
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-count-digits" data-hide-label="Hide solved version" type="button">See the solved version (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-count-digits">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+fn count_digits(n: i32) -> i32 {
+    let mut count = 0;
+    let mut remaining = n;
+    while remaining > 0 {
+        count = count + 1;
+        remaining = remaining / 10;
+    }
+    count
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Rust</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+
+    <h3>4. Extend a working program</h3>
+    <p>
+      <strong>Problem:</strong> now that <code>reverse_number</code> works, add a
+      second function, <code>is_palindrome_number(n)</code>, that returns
+      <code>true</code> if <code>n</code> reads the same forwards and backwards
+      (<code>121</code> and <code>7</code> are palindromes; <code>123</code> is
+      not). This one doesn't need a loop at all: it needs exactly one comparison,
+      calling the function you already wrote.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn reverse_number(n: i32) -> i32 {
+    let mut result = 0;
+    let mut remaining = n;
+    while remaining > 0 {
+        let last_digit = remaining % 10;
+        result = result * 10 + last_digit;
+        remaining = remaining / 10;
+    }
+    result
+}
+
+fn is_palindrome_number(n: i32) -> bool {
+    // TODO: write this one yourself, calling reverse_number above
+    todo!()
+}
+
+fn main() {
+    for n in [121, 123, 7, 1000, 1221, 9009] {
+        println!("{} -> {}", n, is_palindrome_number(n));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="callout tip">
+      <strong>Hint, if you get stuck:</strong> a number is a palindrome exactly when
+      it's equal to its own reverse. You already have a function that computes a
+      reverse.
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-palindrome" data-hide-label="Hide solved version" type="button">See the solved version (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-palindrome">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+fn is_palindrome_number(n: i32) -> bool {
+    n == reverse_number(n)
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Rust</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+
+    <h3>5. Write it yourself, from just a description</h3>
+    <p>
+      <strong>Problem:</strong> write <code>max_of_three(a, b, c)</code>, which
+      returns whichever of the three whole numbers is largest. That's the entire
+      specification. No starter logic, no line-by-line hints this time: just the
+      function signature and a few test calls with the answers written in as
+      comments, so you can check yourself.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn max_of_three(a: i32, b: i32, c: i32) -> i32 {
+    todo!()
+}
+
+fn main() {
+    println!("{}", max_of_three(3, 7, 5));    // 7
+    println!("{}", max_of_three(10, 2, 8));   // 10
+    println!("{}", max_of_three(1, 1, 1));    // 1
+    println!("{}", max_of_three(-5, -1, -9)); // -1
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="callout tip">
+      <strong>Stuck? Here's a nudge, not the answer:</strong> everything you need is
+      just <code>if</code>, <code>else</code>, and <code>&gt;</code>, all from
+      today. Start by comparing just two of the three numbers.
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-max3" data-hide-label="Hide solved version" type="button">See one possible solution (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-max3">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+fn max_of_three(a: i32, b: i32, c: i32) -> i32 {
+    let mut m = a;
+    if b > m {
+        m = b;
+    }
+    if c > m {
+        m = c;
+    }
+    m
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Rust</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <p class="worksheet-note">This is one correct approach, not the only one. If yours looks different but passes all four test calls, it's just as correct.</p>
+    </div>
+
+    <h3>6. Write it yourself, from just a description</h3>
+    <p>
+      <strong>Problem:</strong> write <code>clamp(n, low, high)</code>, which
+      "clamps" a number into a range: if <code>n</code> is already between
+      <code>low</code> and <code>high</code>, return it unchanged; if it's too
+      small, return <code>low</code>; if it's too big, return <code>high</code>.
+      This is a real function used constantly in games and graphics, to keep a
+      value from going out of bounds. Again, just the signature and test calls:
+      no starter logic.
+    </p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn clamp(n: i32, low: i32, high: i32) -> i32 {
+    todo!()
+}
+
+fn main() {
+    println!("{}", clamp(5, 0, 10));    // 5
+    println!("{}", clamp(-3, 0, 10));   // 0
+    println!("{}", clamp(15, 0, 10));   // 10
+    println!("{}", clamp(10, 0, 10));   // 10
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <div class="callout tip">
+      <strong>Stuck? Here's a nudge, not the answer:</strong> this needs three
+      cases, not two: too small, too big, or fine as-is. An <code>if</code>/<code>else
+      if</code>/<code>else</code> chain, like today's letter-grade example, fits
+      perfectly.
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-clamp" data-hide-label="Hide solved version" type="button">See one possible solution (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-clamp">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+fn clamp(n: i32, low: i32, high: i32) -> i32 {
+    if n < low {
+        low
+    } else if n > high {
+        high
+    } else {
+        n
+    }
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Rust</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <p class="worksheet-note">This is one correct approach, not the only one. If yours looks different but passes all four test calls, it's just as correct.</p>
+    </div>
+  </div>
+
+  <div class="section-block materials">
+    <span class="section-tag">Materials</span>
+    <h2>📁 Downloads (optional)</h2>
+    <ul class="file-list">
+      <li><a href="files/is_prime_correct.rs" download>⬇ is_prime_correct.rs</a></li>
+    </ul>
+  </div>
+
+  <div class="section-block deliverable">
+    <span class="section-tag">Deliverable</span>
+    <h2>✅ Checklist</h2>
+    <div class="worksheet" data-key="day3-checklist">
+      <ul class="tier-list">
+        <li><input type="checkbox" data-cell="c1" id="d3c1"><label for="d3c1">I can explain, in my own words, the difference between <code>let</code> and <code>let mut</code>.</label></li>
+        <li><input type="checkbox" data-cell="c2" id="d3c2"><label for="d3c2">I can explain what <code>i32</code>, <code>f64</code>, <code>char</code>, and <code>bool</code> each mean.</label></li>
+        <li><input type="checkbox" data-cell="c3" id="d3c3"><label for="d3c3">I can read a function's signature and say what types it expects and returns.</label></li>
+        <li><input type="checkbox" data-cell="c4" id="d3c4"><label for="d3c4">I can read an <code>if</code>/<code>else</code> chain, a <code>while</code> loop, and a <code>for</code> loop over a range or an array, and predict what they'll print.</label></li>
+        <li><input type="checkbox" data-cell="c5" id="d3c5"><label for="d3c5">I can explain what a tuple like <code>(2000, true)</code> is, and what "destructuring" it in a loop means.</label></li>
+        <li><input type="checkbox" data-cell="c6" id="d3c6"><label for="d3c6">I found and fixed all three bugs in the translated <code>is_prime</code>, and it now gives the same answers as Day 2's Python version.</label></li>
+        <li><input type="checkbox" data-cell="c7" id="d3c7"><label for="d3c7">I completed <code>sum_of_digits</code> and <code>reverse_number</code> by fixing the one wrong line in each.</label></li>
+        <li><input type="checkbox" data-cell="c8" id="d3c8"><label for="d3c8">I wrote <code>count_digits</code> and <code>is_palindrome_number</code> myself, extending working code.</label></li>
+        <li><input type="checkbox" data-cell="c9" id="d3c9"><label for="d3c9">I wrote <code>max_of_three</code> and <code>clamp</code> myself, from just the description, with no starter logic.</label></li>
+      </ul>
+    </div>
+    <div class="worksheet" data-key="day3-reflection" style="margin-top:1.25rem;">
+      <p><strong>What's one thing that surprised you about Rust compared to Python?</strong></p>
+      <textarea class="textbox" data-cell="reflection" style="min-height:80px;"></textarea>
+    </div>
+  </div>
+
+  <div class="callout checkpoint">
+    <strong>Checkpoint:</strong> if you can read a small Rust function with a loop and
+    a conditional and explain what it does, you're ready for Day 4, where you'll read
+    (and write) formal specifications and proofs in exactly this language.
+  </div>
+
+  <div class="hero-actions" style="justify-content:flex-start;margin:2rem 0;">
+    <a class="btn btn-primary" href="day4.html">Day 4: Specs, Proofs &amp; AI &rarr;</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+<script src="js/codeblock.js"></script>
+<script src="js/playground.js"></script>
+<script src="js/worksheet.js"></script>
+<script src="js/reveal.js"></script>
+</body>
+</html>

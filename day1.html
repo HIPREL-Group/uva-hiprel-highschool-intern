@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 1: Bug Hunt &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <span class="day-badge">Day 1 &middot; Mon Jul 6</span>
+  <h1>Introduction to Verified Programming</h1>
+  <p class="lead">Today's goal: understand why "it looks right" isn't the same as "it is right," and prove it to yourself by breaking some code.</p>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Code, Tests, Specs, and Proofs</h2>
+
+    <h3>Why Code Correctness Matters</h3>
+    <p>
+      Software runs almost everything today: rockets, hospital equipment,
+      airplanes, banks, the app you used this morning. When code looks like it works,
+      it's easy to assume it <em>is</em> correct. But "looks right" and "is right" are
+      different claims, and the gap between them has caused some of the most expensive
+      and dangerous failures in computing history. Here are six real ones. Each
+      links to a fuller writeup if you want the details:
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>☢️ Therac-25, 1985&ndash;1987</h3>
+        <p style="font-size:0.9rem;">
+          A radiation therapy machine had a bug that only appeared if an operator
+          entered treatment settings in one order and then corrected them within a
+          specific, narrow timing window: an edge case nobody happened to test.
+          When it triggered, patients received radiation doses <strong>far beyond</strong>
+          what was intended. Several people died.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/Therac-25" target="_blank" rel="noopener">Learn more about Therac-25 &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>🚀 Ariane 5, 1996</h3>
+        <p style="font-size:0.9rem;">
+          A European rocket veered off course and self-destructed <strong>37
+          seconds</strong> after launch, destroying itself and its satellite payload
+          for a loss of about <strong>$370 million</strong>. The cause: leftover
+          navigation software from an earlier, slower rocket tried to convert a speed
+          measurement into a 16-bit number. On the new, faster rocket, the number was
+          too big to fit. Nobody re-tested that old code against the new rocket's
+          actual numbers.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/Ariane_flight_V88" target="_blank" rel="noopener">Learn more about Ariane 5 Flight 501 &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>🛰️ Mars Climate Orbiter, 1999</h3>
+        <p style="font-size:0.9rem;">
+          NASA lost a <strong>$327.6 million</strong> spacecraft because one
+          engineering team's software calculated thruster force in
+          pound-force-seconds, while the team using that number expected
+          newton-seconds, off by a factor of 4.45. Every line of code ran
+          exactly as written; the two teams had simply never agreed on precisely what
+          their numbers meant.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/Mars_Climate_Orbiter" target="_blank" rel="noopener">Learn more about Mars Climate Orbiter &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>📅 Y2K, 1999&ndash;2000</h3>
+        <p style="font-size:0.9rem;">
+          For decades, programs commonly stored years using only two digits (<code>99</code>
+          instead of <code>1999</code>), so many systems risked reading the year 2000
+          as 1900. This one is different from the rest: the bug was found <em>before</em>
+          it caused a disaster, and the world spent an estimated <strong>$300&ndash;600
+          billion</strong> rewriting old code in advance. Correctness work that
+          worked looks like nothing happened, which is exactly the point.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener">Learn more about the Y2K problem &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>📈 Knight Capital, 2012</h3>
+        <p style="font-size:0.9rem;">
+          A deployment script updated 7 of 8 trading servers with new code, but
+          silently failed on the 8th and reported success anyway. That one server
+          still had a dormant feature from 2003, which a reused signal accidentally
+          switched back on. In <strong>45 minutes</strong> it fired 4 million unwanted
+          trades, losing <strong>$440 million</strong> and nearly bankrupting the
+          company.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/Knight_Capital_Group" target="_blank" rel="noopener">Learn more about Knight Capital &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>💻 CrowdStrike, 2024</h3>
+        <p style="font-size:0.9rem;">
+          A single security-software update expected 20 pieces of data but was given
+          21, causing computers to read memory that wasn't there and crash. About
+          <strong>8.5 million</strong> Windows computers went down at once, grounding
+          over 10,000 flights and costing an estimated <strong>$5.4
+          billion</strong>. One update, pushed to everyone at the same time, with no
+          case like it caught beforehand.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/2024_CrowdStrike-related_IT_outages" target="_blank" rel="noopener">Learn more about the CrowdStrike outage &rarr;</a></p>
+      </div>
+    </div>
+
+    <p>
+      Notice these have <em>different</em> root causes: an untested edge case, an
+      unexamined assumption carried over from old code, two teams disagreeing on what
+      a number even means, an update shipped to everyone before anything like it was
+      checked, a silent deployment failure nobody noticed, and (the one exception) a
+      problem found and fixed <em>before</em> it could cause any of this. That's
+      exactly why this week isn't about just one fix. You'll build four different
+      tools this week (code, tests, specifications, and proofs) because each one
+      catches a different kind of mistake, and real software needs more than one line
+      of defense.
+    </p>
+
+    <p>
+      Here's the same idea at a much smaller, safer scale. Imagine you write a
+      function that checks if a year is a leap year. You run it on the year 2024, and
+      it says "yes." Great, but does that mean your code is <em>correct</em>?
+      Not really. It means your code gives the right answer for <strong>one</strong>
+      input. There could be a thousand other inputs where it's wrong. That's the same
+      basic gap behind every story above, just with much lower stakes.
+    </p>
+    <p>
+      This week is about closing that gap, using the four ideas you just read about:
+      code, tests, specifications, and proofs. We'll use a language called
+      <strong>Rust</strong> for most of the week, and on Day 4 a real verification tool
+      called <strong>Verus</strong>. Let's take things one at a time, starting from the
+      very beginning: assume nothing, we'll build it all up together.
+    </p>
+
+    <h3>What does code actually look like?</h3>
+    <p>
+      <strong>Code</strong> is just a very precise, very literal set of instructions for
+      a computer, more like a recipe than an essay. Here's a handful of the
+      building blocks you'll see everywhere this week, in Rust:
+    </p>
+    <table class="schedule">
+      <thead><tr><th>Term</th><th>What it means</th><th>What it looks like</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Variable</strong></td><td>A labeled box that holds a value</td><td><code>let age = 16;</code></td></tr>
+        <tr><td><strong>Function</strong></td><td>A reusable recipe: takes some input, does steps, hands back an output</td><td><code>fn double(x: i32) -&gt; i32 {<br>&nbsp;&nbsp;&nbsp;&nbsp;x * 2<br>}</code></td></tr>
+        <tr><td><strong>Type</strong></td><td>What <em>kind</em> of value something is (Rust always wants to know)</td><td><code>i32</code> (a whole number), <code>bool</code> (true/false)</td></tr>
+        <tr><td><strong>Operator</strong></td><td>A symbol that does an operation: math, or a comparison</td><td><code>+ - * / %</code> and <code>== != && ||</code></td></tr>
+        <tr><td><strong>Condition</strong></td><td>Code that only runs when something is true</td><td><code>if age &gt;= 18 { ... }</code></td></tr>
+        <tr><td><strong>Return value</strong></td><td>The answer a function hands back (in Rust, usually just the last line, with no semicolon)</td><td><code>x * 2</code></td></tr>
+        <tr><td><strong>Comment</strong></td><td>A note for humans; the computer ignores anything after <code>//</code></td><td><code>// this is a note</code></td></tr>
+      </tbody>
+    </table>
+    <p>One operator worth calling out early, since it's the heart of the leap-year rule: <code>%</code> ("modulo") gives you the <em>remainder</em> after division. <code>10 % 3</code> is <code>1</code>, because 10 divided by 3 is 3 with 1 left over. "<code>year % 4 == 0</code>" is just code for "year divides evenly by 4."</p>
+    <p>Here's a tiny complete Rust program using all of the above. Click <strong>Run</strong> below, then try changing some values and running it again:</p>
+
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn double(x: i32) -> i32 {   // a function: a reusable recipe
+    x * 2                     // the last expression (no semicolon) is the return value
+}
+
+fn main() {
+    let name = "Ada";          // a variable: a labeled box holding a value
+    let age = 16;              // another variable, holding a number
+
+    println!("Hello, {}", name);
+    println!("In 4 years you'll be {}", age + 4);
+
+    println!("{}", double(21));
+
+    println!("{}", 10 % 3);        // remainder after dividing 10 by 3
+    println!("{}", 10 % 3 == 1);   // == asks "is this equal to that?" and answers true/false
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="12"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Try changing <code>age</code> or the number passed to <code>double(...)</code> and running again.</p>
+
+    <div class="callout tip">
+      <strong>Curious about Rust syntax beyond what's here?</strong> You don't need
+      this for the week (everything you need is on this site), but if
+      you'd like to go deeper on your own time, <a href="https://doc.rust-lang.org/book/" target="_blank" rel="noopener">The Rust Programming Language</a>
+      (the official, free online book) is the standard place to start.
+    </div>
+
+    <h3>What is a bug?</h3>
+    <p>
+      A <strong>bug</strong> is a mistake in code: a place where the code does
+      something different from what the person writing it actually meant. The tricky
+      part: buggy code usually doesn't crash or show an error message. It just quietly
+      gives a wrong answer, and looks completely normal while doing it. That's what
+      makes bugs hard to catch just by reading code. You often have to actually
+      run it on the right input to notice anything is wrong.
+    </p>
+    <div class="callout tip">
+      <strong>Where the name comes from:</strong> engineers were already calling
+      mechanical glitches "bugs" in the 1800s, but computing's most famous one is real:
+      in 1947, a team working on the Harvard Mark II computer found an actual moth
+      trapped in one of its relays, causing a malfunction. They taped it into their
+      logbook, labeled "first actual case of bug being found." The name stuck.
+    </div>
+    <p>Here's a tiny bug that has nothing to do with leap years, so you can see the idea in isolation. Click Run and see what you actually get:</p>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn average(a: i32, b: i32) -> i32 {
+    a + b / 2   // bug! this divides only b by 2, THEN adds a
+}
+
+fn main() {
+    println!("{}", average(4, 6));   // you'd expect 5 -- what do you actually get?
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="7"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      No error message, no crash, just a wrong number (Rust computes
+      <code>b / 2</code> before the addition, exactly as written). The code follows the
+      order of operations perfectly; it just isn't what the programmer meant. That's a
+      bug. (The fix: <code>(a + b) / 2</code>.)
+    </p>
+
+    <h3>What does a specification look like?</h3>
+    <p>
+      Let's use the smallest example possible: a function that checks whether a number
+      is even. Someone asks you for this in plain English:
+    </p>
+    <blockquote>Write a function that checks if a number is even.</blockquote>
+    <p>
+      That sounds obvious, but before you write a single line of code, ask
+      yourself some questions:
+    </p>
+    <ul>
+      <li>What should happen for <code>0</code>? (Is zero even? Yes, but would you have been sure without asking?)</li>
+      <li>What about a negative number, like <code>-4</code>?</li>
+      <li>What about a number that isn't a whole number, like <code>2.5</code>? The description never said "whole number," though in Rust, choosing the type <code>i32</code> (whole numbers only) already answers this question for us before we even get to write the rule!</li>
+    </ul>
+    <p>
+      A <strong>specification</strong> is what removes that ambiguity. In
+      this internship, "specification" means something specific: not a paragraph of
+      English, but real code that a computer can check automatically. In Verus, you
+      write a specification using a special kind of function called a
+      <code>spec fn</code>. Unlike ordinary code, a <code>spec fn</code> is never
+      actually run. It exists purely as a precise mathematical statement for
+      Verus to reason about. Here's the leap-year problem's cousin, written as one:
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_even_spec(n: int) -> bool {
+    n % 2 == 0
+}
+
+fn is_even(n: i32) -> (result: bool)
+    ensures
+        result == is_even_spec(n as int),
+{
+    n % 2 == 0
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="18"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Click Run. <code>spec fn is_even_spec</code> is the specification. It
+      answers every question we asked above (0? negative numbers?) in one precise
+      line, instead of a bulleted list in English. The <code>ensures</code> clause on
+      <code>is_even</code> is a promise: "this function's result always matches the
+      spec." <code>verification results:: 2 verified, 0 errors</code> means that
+      promise was just checked for every possible <code>i32</code>, not eyeballed.
+      That's exactly what you'll do for the leap-year problem on Day 4.
+    </p>
+
+    <h3>How the pieces fit together: two workflows</h3>
+    <p>
+      Notice "code" showed up in both of the last two examples, but "specification"
+      only showed up in the second one, and in a different position each time.
+      That's not an accident: there are really <strong>two different
+      workflows</strong> for turning a vague description into something you can
+      trust, and this week you'll do both.
+    </p>
+
+    <div class="diagram">
+      <p style="font-weight:700; margin-bottom:0.5rem;">Workflow 1: Testing (Day 2)</p>
+      <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:nowrap;align-items:stretch;overflow-x:auto;padding-bottom:0.25rem;">
+        <div class="card reveal" style="max-width:150px;min-width:150px;transition-delay:0s;">
+          <h3 style="font-size:0.95rem;">1. Description</h3>
+          <p style="font-size:0.8rem;">A natural-language ask, like "check if a number is even." Possibly ambiguous.</p>
+        </div>
+        <div class="reveal" style="align-self:center;font-size:1.1rem;color:var(--text-muted);transition-delay:0.1s;flex-shrink:0;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;min-width:150px;transition-delay:0.15s;">
+          <h3 style="font-size:0.95rem;">2. Code</h3>
+          <p style="font-size:0.8rem;">An implementation: your best attempt to solve what was described. It might have bugs.</p>
+        </div>
+        <div class="reveal" style="align-self:center;font-size:1.1rem;color:var(--text-muted);transition-delay:0.25s;flex-shrink:0;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;min-width:150px;transition-delay:0.3s;">
+          <h3 style="font-size:0.95rem;">3. Test</h3>
+          <p style="font-size:0.8rem;">Specific input/output examples. Passing them doesn't rule out a bug hiding in a case nobody tried.</p>
+        </div>
+      </div>
+
+      <p style="font-weight:700; margin:1.75rem 0 0.5rem;">Workflow 2: Formal Verification (Day 4)</p>
+      <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:nowrap;align-items:stretch;overflow-x:auto;padding-bottom:0.25rem;">
+        <div class="card reveal" style="max-width:150px;min-width:150px;transition-delay:0s;">
+          <h3 style="font-size:0.95rem;">1. Description</h3>
+          <p style="font-size:0.8rem;">The same kind of starting point: a natural-language ask.</p>
+        </div>
+        <div class="reveal" style="align-self:center;font-size:1.1rem;color:var(--text-muted);transition-delay:0.1s;flex-shrink:0;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;min-width:150px;transition-delay:0.15s;">
+          <h3 style="font-size:0.95rem;">2. Formal Spec</h3>
+          <p style="font-size:0.8rem;">A precise rule for <em>every</em> input, written as code (a <code>spec fn</code>), not English.</p>
+        </div>
+        <div class="reveal" style="align-self:center;font-size:1.1rem;color:var(--text-muted);transition-delay:0.25s;flex-shrink:0;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;min-width:150px;transition-delay:0.3s;">
+          <h3 style="font-size:0.95rem;">3. Code</h3>
+          <p style="font-size:0.8rem;">An implementation, written to match the specification.</p>
+        </div>
+        <div class="reveal" style="align-self:center;font-size:1.1rem;color:var(--text-muted);transition-delay:0.4s;flex-shrink:0;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;min-width:150px;transition-delay:0.45s;">
+          <h3 style="font-size:0.95rem;">4. Proof</h3>
+          <p style="font-size:0.8rem;">A guarantee, checked by Verus, that the code matches the spec for <em>every</em> input, forever.</p>
+        </div>
+      </div>
+    </div>
+
+    <p>
+      Days 2 and 3 are workflow 1: you'll code (with AI assistance) and test it. The
+      leap-year bug hunt today is a preview of exactly this. Day 4 takes it further
+      with workflow 2: you'll write a formal specification <em>first</em>, then get
+      Verus to <em>prove</em> your code matches it, for every input rather than just
+      the ones you happened to try.
+    </p>
+
+    <h3>What is a proof, really?</h3>
+    <p>
+      Suppose you want to know: <em>is the sum of any two even numbers always even?</em>
+      Let's check a few:
+    </p>
+    <ul>
+      <li>2 + 4 = <strong>6</strong> (even)</li>
+      <li>6 + 8 = <strong>14</strong> (even)</li>
+      <li>10 + 100 = <strong>110</strong> (even)</li>
+    </ul>
+    <p>
+      Every test passes so far. But we've only checked 3 pairs out of infinitely many
+      possible pairs of even numbers. No matter how many more we try, we can
+      never test <em>all</em> of them by hand. A <strong>proof</strong> settles the
+      question completely, using logic instead of examples. Here's the whole argument,
+      one step at a time:
+    </p>
+    <ol>
+      <li>Every even number is "2 times some whole number." For example, <code>6 = 2 &times; 3</code> and <code>10 = 2 &times; 5</code>.</li>
+      <li>So let's give the two whole numbers names: say our first even number is <code>2 &times; a</code>, and our second is <code>2 &times; b</code>, where <code>a</code> and <code>b</code> could be <em>any</em> whole numbers at all.</li>
+      <li>Their sum is <code>(2 &times; a) + (2 &times; b)</code>, which is the same thing as <code>2 &times; (a + b)</code>.</li>
+      <li>"2 times (a + b)" is even, by the very definition of what "even" means, no matter what number <code>a + b</code> turns out to be.</li>
+    </ol>
+    <p>
+      Check it against the examples above: for <code>6 + 10</code>, we have <code>a = 3</code> and <code>b = 5</code>, so the proof says the sum is <code>2 &times; (3 + 5) = 2 &times; 8 = 16</code>. Sure enough, <code>6 + 10 = 16</code>, and it's even, exactly as the general argument predicted, without us having to test that specific pair. Because <code>a</code> and <code>b</code> stood for <em>any</em> whole numbers, this one argument covers every possible pair of even numbers there will ever be. You've likely written a proof shaped like this in a math class already.
+    </p>
+    <p>
+      That even-plus-even argument was simple enough that, in Verus, you can state it
+      and the SMT solver just figures out the whole thing by itself, with no help from
+      you. That won't always be true. Here's a small function with a <strong>loop</strong>
+      where Verus genuinely needs your help, in the form of a <strong>loop
+      invariant</strong>: a fact you tell it that stays true on every single pass
+      through the loop.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+fn count_to(n: u32) -> (result: u32)
+    ensures
+        result == n,
+{
+    let mut i: u32 = 0;
+    while i < n
+        invariant
+            i <= n,
+        decreases
+            n - i,
+    {
+        i = i + 1;
+    }
+    i
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Click Run: it verifies. This function counts up from 0 to <code>n</code> one
+      step at a time, and <code>ensures result == n</code> promises it always ends up
+      exactly at <code>n</code>. Verus can't see that by itself. It has to reason
+      about the loop somehow, and the <code>invariant i &lt;= n</code> line is your
+      hint: "no matter how many times this loop has run, <code>i</code> is never
+      bigger than <code>n</code>." Combine that with the loop only stopping once
+      <code>i &lt; n</code> is false, and it follows that <code>i</code> must equal
+      <code>n</code> exactly. Try deleting the whole <code>invariant i &lt;= n,</code>
+      line and clicking Run again. Verus will refuse it, because without that hint it
+      has no way to connect what the loop does to what <code>ensures</code> promises.
+      (The <code>decreases</code> line is a second, separate proof obligation: that
+      the loop is guaranteed to stop at all.)
+    </p>
+    <p>
+      A proof about code works the same way: instead of running the program on a
+      thousand inputs and hoping you covered the important ones, a proof reasons about
+      <em>all</em> inputs at once and guarantees the code matches its specification
+      forever, not just for the cases someone happened to try. On <strong>Day 4</strong>, you will use a real tool
+      called <strong>Verus</strong> to write exactly this kind of proof about your own
+      <code>is_leap</code> function, and it will tell you, for certain, whether it holds
+      for literally every possible input.
+    </p>
+
+    <p>
+      Think back to Ariane 5 and Therac-25 from the start of today. A proof is exactly
+      the kind of tool that could have caught both, not by getting lucky on the
+      right test case, but by checking every possible case at once, before the code
+      ever flew or treated a patient. Nobody had proved either one correct. If they
+      had, the overflow and the race condition would both have been caught in
+      advance, not discovered by the failure itself.
+    </p>
+
+    <p>
+      <a href="https://hiprel-group.github.io/VeriContest/" target="_blank" rel="noopener"><strong>VeriContest</strong></a> is a research effort (the reason this internship
+      exists) that studies exactly this: given a problem, can we write down a precise
+      specification, and can we automatically check, or even prove, that
+      code, including code written by an AI, actually satisfies it? This week you'll
+      build a tiny version of that yourself, called <strong>VeriCode-Mini</strong>, using
+      real tools (Rust and Verus) rather than a simplified stand-in. See
+      <a href="project.html">The Project</a> for the full picture.
+    </p>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do</span>
+    <h2>🔨 Bug Hunt: Three Problems</h2>
+    <p>
+      Today's hunt covers <strong>three small problems</strong>, each with one correct
+      function and four buggy ones. No need to read any code closely (though you can,
+      once you're intrigued) — just play with each one like a detective:
+    </p>
+    <ol>
+      <li>Find the live playground for a problem in the Demo section below.</li>
+      <li>Change the input values and click <strong>Run</strong>.</li>
+      <li>Compare "Correct" to each "Buggy #" line. If they disagree, you found a case that exposes that bug!</li>
+      <li>Try to find at least one exposing input for each of the four buggy versions in that problem. Some will jump out right away; others hide in specific, unusual inputs.</li>
+      <li>Record every exposing input you find in that problem's table in the <strong>Deliverable</strong> section below.</li>
+    </ol>
+    <div class="callout tip">
+      <strong>Pacing:</strong> <strong>Problem 1 (leap years) is today's main event</strong>.
+      It's the problem the rest of this week builds on, so make sure you finish
+      hunting all four of its bugs. Problems 2 and 3 are extra practice at spotting bugs
+      in problems you haven't seen before; treat them as bonus rounds if you have time
+      left, and it's totally fine to stop after Problem 1 if you don't.
+    </div>
+  </div>
+
+  <div class="section-block demo">
+    <span class="section-tag">Demo &middot; runs for real, right here</span>
+    <h2>🧪 Problem 1: Leap Years</h2>
+    <p>Here's the rule, in plain English:</p>
+    <blockquote>A year is a leap year if it's divisible by 4, except years divisible by 100, which are <em>not</em> leap years, except years divisible by 400, which <em>are</em> leap years after all.</blockquote>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn is_leap_correct(year: i32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn is_leap_buggy_1(year: i32) -> bool {
+    year % 4 == 0 && (year % 100 == 0 || year % 400 == 0)
+}
+
+fn is_leap_buggy_2(year: i32) -> bool {
+    year % 4 == 0 && (year % 400 != 0 || year % 100 == 0)
+}
+
+fn is_leap_buggy_3(year: i32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 40 == 0)
+}
+
+fn is_leap_buggy_4(year: i32) -> bool {
+    (year + 1) % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+fn main() {
+    let year = 2021;
+
+    println!("Correct:  {}", is_leap_correct(year));
+    println!("Buggy #1: {}", is_leap_buggy_1(year));
+    println!("Buggy #2: {}", is_leap_buggy_2(year));
+    println!("Buggy #3: {}", is_leap_buggy_3(year));
+    println!("Buggy #4: {}", is_leap_buggy_4(year));
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="22"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">At <code>year = 2021</code> all four functions agree, and reading the code won't help you much either: each buggy version looks almost identical to "Correct," off by one flipped symbol or one swapped number hidden in the middle of the expression. You really do have to run it and try inputs. Think about centuries, very old years, year 0, negative years, and years right next to a leap year. If the Run button ever can't reach the server, use the "Open Playground" link instead; the same code will already be in your clipboard, ready to paste after you select all the text in the box above.</p>
+
+    <h2>🧪 Problem 2: Letter Grades</h2>
+    <p>Here's the rule, in plain English:</p>
+    <blockquote>A score of 90 or above is an 'A'. 80&ndash;89 is a 'B'. 70&ndash;79 is a 'C'. 60&ndash;69 is a 'D'. Anything below 60 is an 'F'.</blockquote>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn letter_grade_correct(score: i32) -> char {
+    if score >= 90 {
+        'A'
+    } else if score >= 80 {
+        'B'
+    } else if score >= 70 {
+        'C'
+    } else if score >= 60 {
+        'D'
+    } else {
+        'F'
+    }
+}
+
+fn letter_grade_buggy_1(score: i32) -> char {
+    if score > 90 {
+        'A'
+    } else if score >= 80 {
+        'B'
+    } else if score >= 70 {
+        'C'
+    } else if score >= 60 {
+        'D'
+    } else {
+        'F'
+    }
+}
+
+fn letter_grade_buggy_2(score: i32) -> char {
+    if score >= 90 {
+        'A'
+    } else if score >= 85 {
+        'B'
+    } else if score >= 70 {
+        'C'
+    } else if score >= 60 {
+        'D'
+    } else {
+        'F'
+    }
+}
+
+fn letter_grade_buggy_3(score: i32) -> char {
+    if score >= 90 {
+        'A'
+    } else if score >= 80 {
+        'B'
+    } else if score >= 70 {
+        'C'
+    } else if score >= 65 {
+        'D'
+    } else {
+        'F'
+    }
+}
+
+fn letter_grade_buggy_4(score: i32) -> char {
+    if score >= 90 {
+        'A'
+    } else if score >= 80 {
+        'B'
+    } else if score >= 60 {
+        'C'
+    } else if score >= 70 {
+        'D'
+    } else {
+        'F'
+    }
+}
+
+fn main() {
+    let score = 50;
+
+    println!("Correct:  {}", letter_grade_correct(score));
+    println!("Buggy #1: {}", letter_grade_buggy_1(score));
+    println!("Buggy #2: {}", letter_grade_buggy_2(score));
+    println!("Buggy #3: {}", letter_grade_buggy_3(score));
+    println!("Buggy #4: {}", letter_grade_buggy_4(score));
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="24"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">At <code>score = 50</code> all four functions agree, and each buggy version differs from "Correct" by just one small detail (a number, a symbol, or two numbers swapped) buried in an otherwise identical-looking chain of checks. Try scores right at the boundaries: exactly 90, 89, 80, 79, 70, 69, 60, and 59.</p>
+
+    <h2>🧪 Problem 3: Valid Triangles</h2>
+    <p>Here's the rule, in plain English:</p>
+    <blockquote>Three side lengths <code>a</code>, <code>b</code>, and <code>c</code> can form a triangle only if all three are positive, and each side is strictly shorter than the sum of the other two (the "triangle inequality").</blockquote>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn is_valid_triangle_correct(a: i32, b: i32, c: i32) -> bool {
+    a > 0 && b > 0 && c > 0 && a + b > c && b + c > a && a + c > b
+}
+
+fn is_valid_triangle_buggy_1(a: i32, b: i32, c: i32) -> bool {
+    a > 0 && b > 0 && c > 0 && a + b > a && b + c > a && a + c > b
+}
+
+fn is_valid_triangle_buggy_2(a: i32, b: i32, c: i32) -> bool {
+    a > 0 && b > 0 && c > 0 && a + b >= c && b + c >= a && a + c >= b
+}
+
+fn is_valid_triangle_buggy_3(a: i32, b: i32, c: i32) -> bool {
+    a > 0 && b > 0 && c > 0 && a + b > c && b + b > a && a + c > b
+}
+
+fn is_valid_triangle_buggy_4(a: i32, b: i32, c: i32) -> bool {
+    a > 0 && b > 0 && c > 0 && (a + b > c || b + c > a || a + c > b)
+}
+
+fn main() {
+    let (a, b, c) = (3, 4, 5);
+
+    println!("Correct:  {}", is_valid_triangle_correct(a, b, c));
+    println!("Buggy #1: {}", is_valid_triangle_buggy_1(a, b, c));
+    println!("Buggy #2: {}", is_valid_triangle_buggy_2(a, b, c));
+    println!("Buggy #3: {}", is_valid_triangle_buggy_3(a, b, c));
+    println!("Buggy #4: {}", is_valid_triangle_buggy_4(a, b, c));
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">At <code>(3, 4, 5)</code>, a perfectly ordinary valid triangle, all four functions agree, and every buggy version still has three inequality checks joined the same way "Correct" does; the bug is one flipped symbol or one repeated letter hiding inside a check that otherwise looks right. Try triples that are almost-but-not-quite a triangle (like <code>(1, 1, 5)</code>), triples with a zero or negative side, and triples where two sides add up to <em>exactly</em> the third.</p>
+  </div>
+
+  <div class="section-block materials">
+    <span class="section-tag">Materials</span>
+    <h2>📁 Downloads (optional)</h2>
+    <p>Each playground above already gives you everything you need.</p>
+    <p><strong>Problem 1: Leap Years</strong></p>
+    <ul class="file-list">
+      <li><a href="files/is_leap_correct.rs" download>⬇ is_leap_correct.rs</a></li>
+      <li><a href="files/is_leap_buggy_1.rs" download>⬇ is_leap_buggy_1.rs</a></li>
+      <li><a href="files/is_leap_buggy_2.rs" download>⬇ is_leap_buggy_2.rs</a></li>
+      <li><a href="files/is_leap_buggy_3.rs" download>⬇ is_leap_buggy_3.rs</a></li>
+      <li><a href="files/is_leap_buggy_4.rs" download>⬇ is_leap_buggy_4.rs</a></li>
+    </ul>
+    <p><strong>Problem 2: Letter Grades</strong></p>
+    <ul class="file-list">
+      <li><a href="files/letter_grade_correct.rs" download>⬇ letter_grade_correct.rs</a></li>
+      <li><a href="files/letter_grade_buggy_1.rs" download>⬇ letter_grade_buggy_1.rs</a></li>
+      <li><a href="files/letter_grade_buggy_2.rs" download>⬇ letter_grade_buggy_2.rs</a></li>
+      <li><a href="files/letter_grade_buggy_3.rs" download>⬇ letter_grade_buggy_3.rs</a></li>
+      <li><a href="files/letter_grade_buggy_4.rs" download>⬇ letter_grade_buggy_4.rs</a></li>
+    </ul>
+    <p><strong>Problem 3: Valid Triangles</strong></p>
+    <ul class="file-list">
+      <li><a href="files/is_valid_triangle_correct.rs" download>⬇ is_valid_triangle_correct.rs</a></li>
+      <li><a href="files/is_valid_triangle_buggy_1.rs" download>⬇ is_valid_triangle_buggy_1.rs</a></li>
+      <li><a href="files/is_valid_triangle_buggy_2.rs" download>⬇ is_valid_triangle_buggy_2.rs</a></li>
+      <li><a href="files/is_valid_triangle_buggy_3.rs" download>⬇ is_valid_triangle_buggy_3.rs</a></li>
+      <li><a href="files/is_valid_triangle_buggy_4.rs" download>⬇ is_valid_triangle_buggy_4.rs</a></li>
+    </ul>
+  </div>
+
+  <div class="section-block deliverable">
+    <span class="section-tag">Deliverable</span>
+    <h2>✅ Bug Hunt Tables &amp; Reflection</h2>
+    <p>Fill these in as you go. They save automatically in this browser.</p>
+
+    <h3>Problem 1: Leap Years (required)</h3>
+    <table class="worksheet" data-key="day1-bughunt-leap">
+      <thead><tr><th>Year tried</th><th>Which buggy version(s) disagreed?</th><th>What's the correct answer?</th><th>Why do you think it's wrong?</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Problem 2: Letter Grades (bonus)</h3>
+    <table class="worksheet" data-key="day1-bughunt-grade">
+      <thead><tr><th>Score tried</th><th>Which buggy version(s) disagreed?</th><th>What's the correct answer?</th><th>Why do you think it's wrong?</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Problem 3: Valid Triangles (bonus)</h3>
+    <table class="worksheet" data-key="day1-bughunt-triangle">
+      <thead><tr><th>(a, b, c) tried</th><th>Which buggy version(s) disagreed?</th><th>What's the correct answer?</th><th>Why do you think it's wrong?</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Reflection</h3>
+    <p>Why does code correctness matter? What input surprised you today, and why?</p>
+    <div class="worksheet" data-key="day1-reflection">
+      <textarea class="textbox" data-cell="reflection" placeholder="Write a paragraph here..."></textarea>
+    </div>
+    <p class="save-note">Saved automatically in this browser as you type.</p>
+  </div>
+
+  <div class="callout checkpoint">
+    <strong>Checkpoint:</strong> could you edit the code above and run it yourself, and
+    did you find all four bugs in Problem 1? That's today's real finish line. If you
+    got there with time to spare, Problems 2 and 3 are ready for you. If you're still getting
+    comfortable, that's totally fine. Tomorrow's starting point will meet you
+    where you are.
+  </div>
+
+  <div class="hero-actions" style="justify-content:flex-start;margin:2rem 0;">
+    <a class="btn btn-primary" href="day2.html">Day 2: Build the Judge &rarr;</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+<script src="js/codeblock.js"></script>
+<script src="js/playground.js"></script>
+<script src="js/worksheet.js"></script>
+</body>
+</html>

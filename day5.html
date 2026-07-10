@@ -1,0 +1,1368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 5: Proofs, Both Workflows &amp; Wrap-Up &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header no-print">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <span class="day-badge no-print">Day 5 &middot; Fri Jul 10</span>
+  <h1 class="no-print">Proofs, Both Workflows &amp; Wrap-Up</h1>
+  <p class="lead no-print">
+    Today has two parts. First, <strong>Verus proofs</strong>: yesterday you
+    wrote specs, the promises code has to keep; today you learn the tools for
+    actually convincing Verus a promise is kept, for the cases where its
+    automatic solver can't see it alone. Second, the <strong>final report</strong>:
+    pulling this whole week (testing <em>and</em> formal verification) into one
+    write-up you can print or save as a PDF.
+  </p>
+
+  <div class="section-block learn no-print">
+    <span class="section-tag">Learn &middot; Part 1: Verus Proofs</span>
+    <h2>📖 Why do we need proofs?</h2>
+    <p>
+      All week, connecting a spec to code has looked the same: write
+      <code>ensures result == my_spec(...)</code>, and Verus's automatic solver
+      (Z3) works out on its own whether the code lives up to it. That's exactly
+      what happened for <code>is_leap</code>, letter grades, triangles, and even
+      the real VeriContest Nim game problem: Z3 handled the whole thing itself,
+      with zero extra work from you.
+    </p>
+    <p>
+      But Z3 isn't magic, and it has real, specific blind spots. Three of them
+      matter for today:
+    </p>
+    <ul>
+      <li><strong>Multiplication of two unknown values</strong> ("nonlinear arithmetic") is notoriously hard for automatic solvers, even for facts a human finds obvious.</li>
+      <li><strong>Loops</strong> can run an unknown number of times, so Z3 can't just "try every iteration" the way it tries every possible input to a spec.</li>
+      <li><strong>Recursive specs</strong> (like the ones in yesterday's VeriContest examples) could unfold forever if Z3 tried to expand them blindly, so it deliberately doesn't, unless told to.</li>
+    </ul>
+    <p>
+      When Z3 hits one of these, verification just fails, the same
+      <code>postcondition not satisfied</code> style error you've seen all
+      week, even though the code is genuinely correct. A <strong>proof</strong>
+      is how you close that gap: extra reasoning, written in the same file,
+      that walks Z3 through exactly the step it couldn't find alone. You saw
+      several already, pre-written, inside yesterday's VeriContest exercises;
+      today you write your own. There are three tools for this, and you'll
+      use all three today: <strong><code>assert</code></strong>,
+      <strong>loop <code>invariant</code></strong>, and
+      <strong>lemma functions</strong> (<code>proof fn</code>).
+    </p>
+  </div>
+
+  <div class="section-block learn no-print">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Proof Type 1: <code>assert</code></h2>
+    <p>
+      The simplest proof tool is also the one you already half-know:
+      <code>assert(fact)</code> tells Verus "prove this specific fact is true,
+      right here." It's a checkpoint, not a whole argument: you're breaking a
+      big claim into a smaller, more manageable one, at one exact spot in the
+      code. If the fact is actually true (and Verus can see why), it moves on
+      silently. If it isn't, or Verus can't see why, you get an error pointing
+      at that exact line.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+fn double(x: i32) -> (result: i32)
+    requires
+        -1_000_000 <= x <= 1_000_000,
+    ensures
+        result == 2 * x,
+{
+    let y = x + x;
+    assert(y == 2 * x);
+    y
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="16"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>
+      Run it: <code>2 verified, 0 errors</code>. Now try changing the assert to
+      something false, like <code>assert(y == 3 * x);</code>, and run again.
+    </p>
+    <div class="code-block">
+      <script type="text/plain" class="code-source">
+error: assertion failed
+ --> main.rs:9:12
+  |
+9 |     assert(y == 3 * x);
+  |            ^^^^^^^^^^ assertion failed
+
+verification results:: 1 verified, 1 errors
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Real Verus output (false assert)</span>
+      </div>
+      <pre class="code-content"></pre>
+    </div>
+    <p>
+      In that example, Z3 could actually see the true fact on its own; the
+      assert was just a demonstration of the syntax. Here's a case where an
+      assert is genuinely necessary: a fact about multiplication, which is
+      exactly the kind of thing Z3 struggles with alone.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+proof fn square_at_least_self(n: int)
+    requires
+        n >= 1,
+    ensures
+        n * n >= n,
+{
+    // Try commenting out the next line and running again: Verus will reject
+    // this fact even though it's obviously true (try n=2: 2*2=4 >= 2).
+    assert(n * n >= n) by (nonlinear_arith)
+        requires
+            n >= 1,
+    {}
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="14"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      <code>by (nonlinear_arith)</code> tells Verus "use extra reasoning
+      specifically built for multiplication problems, just for this one
+      assert." You don't need to understand how that reasoning works, only
+      that this phrase exists for exactly this situation: true facts involving
+      multiplication that Z3 can't see on its own.
+    </p>
+
+    <h3>🔨 Your turn: prove <code>n * n</code> is never negative</h3>
+    <p>
+      This is true for <em>every</em> whole number, positive, negative, or
+      zero, no <code>requires</code> needed. Fill in the assert, the same
+      shape as the example above.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+proof fn square_nonneg(n: int)
+    ensures
+        n * n >= 0,
+{
+    // TODO: assert that n * n >= 0, using by (nonlinear_arith), the same
+    // shape as the square_at_least_self example above (this one needs no
+    // requires clause, since it's true for every n).
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="12"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-assert-exercise" data-hide-label="Hide solution" type="button">See the solution (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-assert-exercise">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+proof fn square_nonneg(n: int)
+    ensures
+        n * n >= 0,
+{
+    assert(n * n >= 0) by (nonlinear_arith) {}
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block learn no-print">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Proof Type 2: loop <code>invariant</code></h2>
+    <p>
+      You've actually already seen these: yesterday's <code>is_prime</code>,
+      Contains Duplicate, and "steps to zero" exercises all had a real loop
+      invariant sitting in the code, already written, so you could focus on
+      the spec. Today you write one yourself.
+    </p>
+    <p>
+      A loop <strong>invariant</strong> is a claim that has to be true at one
+      specific moment, repeated over and over: right before Verus checks the
+      loop's condition, every single time, including before the very first
+      iteration and right after the very last one. That repetition is exactly
+      why it works without "unrolling" the loop: Verus only ever has to check
+      one thing, "does this iteration preserve the invariant," instead of
+      reasoning about every possible number of iterations separately.
+    </p>
+    <p>
+      A good invariant, once the loop ends, has to be strong enough to imply
+      the whole <code>ensures</code> promise on its own. Here's a loop with
+      <strong>no</strong> invariant, counting how many even numbers are less
+      than <code>n</code>:
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn even_count_spec(n: int) -> int
+    decreases n
+{
+    if n <= 0 {
+        0
+    } else if (n - 1) % 2 == 0 {
+        1 + even_count_spec(n - 1)
+    } else {
+        even_count_spec(n - 1)
+    }
+}
+
+fn count_evens(n: i32) -> (result: i32)
+    requires
+        0 <= n <= 1000,
+    ensures
+        result == even_count_spec(n as int),
+{
+    let mut count = 0;
+    let mut i = 0;
+    while i < n
+        decreases n - i,
+    {
+        if i % 2 == 0 {
+            count += 1;
+        }
+        i += 1;
+    }
+    count
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Run it: Verus rejects both the <code>ensures</code> and warns about
+      possible overflow. It has no idea what <code>count</code> is tracking
+      between iterations, so it can't connect the finished loop back to
+      <code>even_count_spec</code> at all. Now here's the same function with a
+      real invariant added:
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn even_count_spec(n: int) -> int
+    decreases n
+{
+    if n <= 0 {
+        0
+    } else if (n - 1) % 2 == 0 {
+        1 + even_count_spec(n - 1)
+    } else {
+        even_count_spec(n - 1)
+    }
+}
+
+fn count_evens(n: i32) -> (result: i32)
+    requires
+        0 <= n <= 1000,
+    ensures
+        result == even_count_spec(n as int),
+{
+    let mut count = 0;
+    let mut i = 0;
+    while i < n
+        invariant
+            0 <= i <= n,
+            count == even_count_spec(i as int),
+            0 <= count <= i,
+        decreases n - i,
+    {
+        if i % 2 == 0 {
+            count += 1;
+        }
+        i += 1;
+    }
+    count
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="22"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Read the three clauses as one sentence: "at this point, <code>i</code>
+      is somewhere between 0 and <code>n</code>; <code>count</code> exactly
+      equals how many even numbers are below <code>i</code> so far; and
+      <code>count</code> is never bigger than <code>i</code>." That last
+      clause isn't part of what you're trying to prove, it's there purely to
+      rule out overflow: without a bound on <code>count</code>, Verus can't
+      tell <code>count += 1</code> won't eventually run off the top of an
+      <code>i32</code>.
+    </p>
+
+    <h3>🔨 Your turn: count the odd numbers instead</h3>
+    <p>Same idea, opposite condition. Write the invariant for <code>count_odds</code>:</p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn odd_count_spec(n: int) -> int
+    decreases n
+{
+    if n <= 0 {
+        0
+    } else if (n - 1) % 2 != 0 {
+        1 + odd_count_spec(n - 1)
+    } else {
+        odd_count_spec(n - 1)
+    }
+}
+
+fn count_odds(n: i32) -> (result: i32)
+    requires
+        0 <= n <= 1000,
+    ensures
+        result == odd_count_spec(n as int),
+{
+    let mut count = 0;
+    let mut i = 0;
+    while i < n
+        // TODO: write the invariant clauses here, the same three-clause
+        // shape as count_evens above, just with odd_count_spec instead
+        invariant
+            true,
+        decreases n - i,
+    {
+        if i % 2 != 0 {
+            count += 1;
+        }
+        i += 1;
+    }
+    count
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="24"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-invariant-exercise" data-hide-label="Hide solution" type="button">See the solution (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-invariant-exercise">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+while i < n
+    invariant
+        0 <= i <= n,
+        count == odd_count_spec(i as int),
+        0 <= count <= i,
+    decreases n - i,
+{
+    if i % 2 != 0 {
+        count += 1;
+    }
+    i += 1;
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block learn no-print">
+    <span class="section-tag">Learn</span>
+    <h2>📖 Proof Type 3: lemma functions (<code>proof fn</code>)</h2>
+    <p>
+      You've also already seen this one: yesterday's "steps to zero" problem
+      had two small <code>proof fn</code>s underneath the spec, already
+      written. A <strong>lemma function</strong> is a function that contains
+      <em>only</em> logical reasoning, never actual running code, whose entire
+      purpose is establishing one reusable fact. It's especially useful for
+      recursive specs, where the natural way to prove something is to mirror
+      the recursion itself: prove the base case, then show each recursive
+      case follows from a smaller version of the same fact, exactly the
+      structure of a mathematical proof by induction.
+    </p>
+    <p>
+      Here's a fact about <code>even_count_spec</code> from the invariant
+      example above: it never returns more than <code>n</code> itself.
+    </p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn even_count_spec(n: int) -> int
+    decreases n
+{
+    if n <= 0 {
+        0
+    } else if (n - 1) % 2 == 0 {
+        1 + even_count_spec(n - 1)
+    } else {
+        even_count_spec(n - 1)
+    }
+}
+
+proof fn even_count_bound(n: int)
+    requires
+        n >= 0,
+    ensures
+        even_count_spec(n) <= n,
+    decreases n,
+{
+    if n > 0 {
+        even_count_bound(n - 1);
+    }
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p>
+      Read it the way you'd read an induction proof by hand: "base case,
+      <code>n &lt;= 0</code>: <code>even_count_spec</code> is 0, and 0 &lt;= 0,
+      done. Recursive case, <code>n &gt; 0</code>: assuming the fact already
+      holds for <code>n - 1</code> (that's what calling
+      <code>even_count_bound(n - 1)</code> gets you), the fact for
+      <code>n</code> follows." <code>decreases n</code> is required here for
+      the same reason it was required on recursive <code>spec fn</code>s
+      yesterday: proving each call genuinely gets closer to the base case, so
+      the reasoning can't loop forever.
+    </p>
+    <p class="worksheet-note">
+      A lemma only helps once you actually <em>call</em> it. Proved on its
+      own, <code>even_count_bound</code> doesn't automatically make anything
+      else aware of the fact; you have to invoke it, inside a
+      <code>proof { }</code> block, at the point where you need it, the same
+      way yesterday's "steps to zero" proof called its two lemmas from inside
+      the loop.
+    </p>
+
+    <h3>🔨 Your turn: bound <code>odd_count_spec</code> the same way</h3>
+    <p>Same fact, same recursive structure, for the odd-counting spec from the invariant exercise:</p>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn odd_count_spec(n: int) -> int
+    decreases n
+{
+    if n <= 0 {
+        0
+    } else if (n - 1) % 2 != 0 {
+        1 + odd_count_spec(n - 1)
+    } else {
+        odd_count_spec(n - 1)
+    }
+}
+
+proof fn odd_count_bound(n: int)
+    requires
+        n >= 0,
+    ensures
+        odd_count_spec(n) <= n,
+    decreases n,
+{
+    // TODO: write the body, the same shape as even_count_bound above:
+    // if n > 0, call odd_count_bound(n - 1) to handle the recursive case.
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus &middot; your workspace</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-lemma-exercise" data-hide-label="Hide solution" type="button">See the solution (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-lemma-exercise">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+proof fn odd_count_bound(n: int)
+    requires
+        n >= 0,
+    ensures
+        odd_count_spec(n) <= n,
+    decreases n,
+{
+    if n > 0 {
+        odd_count_bound(n - 1);
+    }
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block learn no-print">
+    <span class="section-tag">Learn</span>
+    <h2>📖 How do you actually write a proof?</h2>
+    <p>
+      Now that you've used all three tools separately, here's the honest
+      answer to "how do I know which ones I need, and when?" Part of that
+      answer is a hard rule. The rest of it, you only ever learn by doing.
+    </p>
+
+    <h3>The one rule: a loop always needs an invariant</h3>
+    <p>
+      If your executable code has a loop, and that loop's result has to match
+      a spec through <code>ensures</code>, you <strong>always</strong> need a
+      loop invariant. Full stop. This part isn't a judgment call the way
+      asserts and lemmas are: Verus fundamentally cannot reason past a loop
+      without one, the same way it fundamentally cannot verify a function with
+      no <code>ensures</code> at all. Even a loop that obviously does the right
+      thing still needs its invariant spelled out; Verus never runs your code
+      to see what "obviously" happens, it only ever reads what you've told it.
+    </p>
+
+    <h3>Asserts and lemmas: it depends on the program</h3>
+    <p>
+      <code>assert</code> and lemma functions are a different story. Compare
+      the two loop-based problems you've now seen in full. Today's
+      <code>count_evens</code>/<code>count_odds</code> needed
+      <strong>only</strong> an invariant: no assert, no lemma, nothing else.
+      But yesterday's "steps to zero" problem needed an invariant
+      <em>and</em> two separate lemma functions underneath it. Both problems
+      have a loop. Only one of them needed help beyond the invariant. That
+      difference wasn't a rule you could have looked up ahead of time; it came
+      entirely from what that specific loop's invariant needed to lean on.
+    </p>
+    <p>
+      That's the real answer: whether a given program needs an
+      <code>assert</code> or a lemma is <strong>empirical</strong>. It depends
+      on the exact arithmetic and logic in that specific program, not on some
+      general property of "loops" or "specs" you could memorize once and reuse
+      everywhere. Nobody, including people who write Verus proofs
+      professionally, reliably predicts this from just reading code; they find
+      out by trying it.
+    </p>
+
+    <h3>The actual workflow</h3>
+    <p>This is genuinely how it's done in practice, including by whoever wrote every VeriContest proof you've seen this week:</p>
+    <ol>
+      <li>Write your executable code and its spec. If there's a loop, write your best-guess invariant, the strongest true statement you can come up with that captures what the loop is doing. Add nothing else yet.</li>
+      <li>Run Verus.</li>
+      <li>
+        <strong>If it verifies, stop.</strong> You didn't need an assert or a
+        lemma this time, and adding one anyway would just be unnecessary
+        extra work. This is exactly what happened with <code>is_leap</code>,
+        letter grades, triangles, the Nim game, and <code>count_evens</code>.
+      </li>
+      <li>
+        <strong>If it doesn't, read the specific error.</strong> Verus tells
+        you exactly which line and which fact it couldn't establish, the same
+        way it's done all week. That failure is your instruction for what to
+        add next, not a sign to throw everything out and start over.
+      </li>
+      <li>
+        Add the smallest hint that addresses that exact gap, and nothing more:
+        an <code>assert(...) by (nonlinear_arith)</code> if the failure
+        involves multiplying two unknowns, a lemma call if it involves a fact
+        about a recursive spec, or a stronger invariant clause if the loop's
+        own reasoning was too weak. Run again.
+      </li>
+      <li>Repeat. Most real proofs, including yesterday's VeriContest examples, were built exactly this way: a handful of rounds of "run it, read the error, add the smallest fix that addresses it," not written correctly in one pass.</li>
+    </ol>
+
+    <p>Two rough patterns worth noticing, even though neither is a guarantee:</p>
+    <ul>
+      <li><strong>Multiplying or dividing two unknown values</strong>, in a fact Verus needs to see, is a strong hint you'll want an <code>assert(...) by (nonlinear_arith)</code>, like today's <code>square_at_least_self</code>.</li>
+      <li><strong>A recursive spec</strong> your loop invariant depends on (like <code>even_count_spec</code> or yesterday's <code>spec_steps</code>) is a strong hint you'll eventually want a lemma proving some fact about it by induction, especially a numeric bound needed to avoid overflow.</li>
+    </ul>
+    <p class="worksheet-note">
+      Neither pattern is a promise, only something worth noticing once you've
+      seen it happen a few times. The only way to know for certain, for any
+      specific piece of code, is the workflow above: try it, and let Verus's
+      own error message tell you what's actually still missing.
+    </p>
+  </div>
+
+  <div class="section-block do no-print">
+    <span class="section-tag">Do &middot; Part 2: capstone, ~55 min</span>
+    <h2>🔨 Four new problems, both workflows</h2>
+    <p>Remember the two workflows from Day 1?</p>
+    <div class="diagram">
+      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;align-items:center;">
+        <div class="card" style="max-width:150px;"><strong>Workflow 1: Testing</strong><br><span style="font-size:0.85rem;">Description &rarr; Code &rarr; Test</span></div>
+        <div class="card" style="max-width:150px;"><strong>Workflow 2: Formal Verification</strong><br><span style="font-size:0.85rem;">Description &rarr; Spec &rarr; Code &rarr; Proof</span></div>
+      </div>
+    </div>
+    <p>
+      Four new problems, roughly 13&ndash;15 minutes each. For every one of
+      them, you'll run both workflows, using AI to help at every step. For
+      Workflow 2 specifically, do the three parts of the pipeline <strong>as
+      three separate AI prompts, in order</strong>, exactly the way the
+      pipeline above is drawn: first ask for just the <strong>spec</strong>,
+      then, separately, ask for the <strong>code</strong> to match it, then
+      check whether it verifies. If it doesn't (because there's a loop that
+      needs an invariant), ask for the <strong>proof</strong> as a third,
+      separate prompt. Only once spec, code, <em>and</em> proof are all
+      sitting together in one file and Verus reports everything
+      <code>verified</code> are you actually done, the same standard every
+      VeriContest example this week has held to.
+    </p>
+
+    <h3>Problem 1 of 4: is this a valid triangle?</h3>
+    <p>
+      Given three side lengths, can they actually form a triangle? (All sides
+      positive, and each side strictly shorter than the sum of the other two.)
+    </p>
+
+    <h4>Workflow 1: write the code, then write the tests, both yourself</h4>
+    <ol>
+      <li>Write <code>is_valid_triangle</code> yourself, straight from the rule at the top of this problem.</li>
+      <li>Then write your own test cases in the <code>main</code> function below: a normal triangle, a degenerate case where two sides add up to <em>exactly</em> the third, and a case with a zero or negative side. Come up with the specific numbers yourself.</li>
+      <li>If you get stuck on the function itself or can't think of good test cases, that's the moment to ask an AI for help, describing in your own words what's stumping you. Try to still get all the way through both the code and the tests, just with help on the part that was hard.</li>
+    </ol>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn is_valid_triangle(a: i32, b: i32, c: i32) -> bool {
+    // TODO: write this yourself
+    todo!()
+}
+
+fn main() {
+    // TODO: write your own test cases here, as (a, b, c) tuples
+    for (a, b, c) in [(3, 4, 5)] {
+        println!("({}, {}, {}) -> {}", a, b, c, is_valid_triangle(a, b, c));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <h4>Workflow 2: spec, then code, then (maybe) proof</h4>
+    <div class="callout warn">
+      <strong>Heads up before you start:</strong> the template below includes a
+      <code>requires</code> clause bounding how large the sides can be. This is
+      new: inside a <code>spec fn</code>, numbers are unbounded mathematical
+      integers (<code>int</code>), but the real, running <code>i32</code>
+      version has actual hardware limits, so <code>a + b</code> really can
+      overflow for huge inputs. The <code>requires</code> clause tells Verus
+      "don't worry about inputs bigger than this," which is itself part of
+      writing an honest specification: real numbers have real limits that the
+      pure math version doesn't.
+    </div>
+    <p>Write all three parts yourself, in order, before turning to AI for anything.</p>
+    <ol>
+      <li>
+        <strong>Step 1, spec:</strong> write <code>is_valid_triangle_spec</code>
+        yourself, straight from the rule above (all sides positive, each side
+        strictly less than the sum of the other two). Paste it in and click
+        Run just to check it's valid, well-formed Verus; it won't fully
+        verify yet without real code underneath, that's expected.
+      </li>
+      <li>
+        <strong>Step 2, code:</strong> write the matching
+        <code>is_valid_triangle</code> exec function yourself, paste it in,
+        and click Run. Check the result: does Verus say <code>verified</code>,
+        or point at a specific problem?
+      </li>
+      <li>
+        <strong>Step 3, proof:</strong> check whether Step 2 already reports
+        <code>verified</code> on its own. This problem's arithmetic (three
+        additions, three comparisons) is simple enough that Verus's automatic
+        solver usually handles it with no extra proof at all, the same way the
+        original leap-year <code>ensures</code> clause did back on Day 4. If
+        yours already reports <code>verified</code> after Step 2, you're done.
+        (If you want an extra challenge, try changing the spec to also
+        require the triangle's <em>area</em> be above some threshold, using
+        Heron's formula; that involves multiplication, and will likely need
+        an <code>assert ... by (nonlinear_arith)</code> from Part 1 to
+        verify.)
+      </li>
+      <li>
+        If you get stuck on any of the three parts, describe in your own
+        words to an AI what you're stuck on (mentioning Verus, and pasting in
+        whatever you already have), and try to finish the whole pipeline,
+        spec through verified proof, rather than stopping once that one part
+        is unblocked.
+      </li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn is_valid_triangle_spec(a: int, b: int, c: int) -> bool {
+    // TODO: write this yourself
+    true
+}
+
+fn is_valid_triangle(a: i32, b: i32, c: i32) -> (result: bool)
+    requires
+        0 < a < 1_000_000,
+        0 < b < 1_000_000,
+        0 < c < 1_000_000,
+    ensures
+        result == is_valid_triangle_spec(a as int, b as int, c as int),
+{
+    // TODO: this body must match is_valid_triangle_spec above
+    a > 0 && b > 0 && c > 0 && a + b > c && b + c > a && a + c > b
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">You should see <code>verification results:: 2 verified, 0 errors</code>: a mathematical guarantee this holds for every valid input, not just the five you tested by hand in Workflow 1.</p>
+
+    <h3>Problem 2 of 4: the largest of three numbers</h3>
+    <p>Given three whole numbers, return the largest one.</p>
+
+    <h4>Workflow 1: write the code, then write the tests, both yourself</h4>
+    <ol>
+      <li>Write <code>max_of_three</code> yourself.</li>
+      <li>Then write your own test cases below: ties (all three equal), a tie between two of them, and negative numbers. Come up with the specific numbers yourself.</li>
+      <li>Only if you get stuck, ask an AI, and try to still finish both the code and the tests yourself afterward.</li>
+    </ol>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn max_of_three(a: i32, b: i32, c: i32) -> i32 {
+    // TODO: write this yourself
+    todo!()
+}
+
+fn main() {
+    // TODO: write your own test cases here, as (a, b, c) tuples
+    for (a, b, c) in [(3, 7, 5)] {
+        println!("max({}, {}, {}) -> {}", a, b, c, max_of_three(a, b, c));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <h4>Workflow 2: spec, then code, then (maybe) proof</h4>
+    <p>
+      This spec needs the same two-part "maximum of something" shape you used
+      on Day 4: the result has to be an upper bound on all three numbers
+      <em>and</em> actually be one of them, not just bigger than all three
+      (which nothing could be, if all three are already the biggest possible).
+    </p>
+    <p>Again, write all three parts yourself first.</p>
+    <ol>
+      <li>
+        <strong>Step 1, spec:</strong> write <code>max_of_three_spec</code>
+        yourself: it needs the two-part shape from the paragraph above, an
+        upper bound <em>and</em> achievable. Paste it in and click Run to
+        check it's valid Verus.
+      </li>
+      <li>
+        <strong>Step 2, code:</strong> write the matching
+        <code>max_of_three</code> exec function yourself, paste it in, and
+        click Run. Check the result before moving on.
+      </li>
+      <li>
+        <strong>Step 3, proof:</strong> check whether Step 2 already reports
+        <code>verified</code>. Like the triangle, this one has no loop and
+        only simple comparisons, so it usually verifies with nothing extra
+        the moment Step 2 is in place. If yours doesn't on the first try, read
+        the error the way Part 1 taught you to, and fix only what it points at.
+      </li>
+      <li>
+        If any part has you genuinely stuck, describe the problem to an AI in
+        your own words and keep going until the whole pipeline verifies.
+      </li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn max_of_three_spec(a: int, b: int, c: int, result: int) -> bool {
+    // TODO: write this yourself
+    // (note: starting from `false` here on purpose -- `true` would make this
+    // ensures clause trivially satisfied by any exec code at all, the exact
+    // trap from Part 1's "verified doesn't mean your spec is right" example)
+    false
+}
+
+fn max_of_three(a: i32, b: i32, c: i32) -> (result: i32)
+    requires
+        -1_000_000_000 <= a <= 1_000_000_000,
+        -1_000_000_000 <= b <= 1_000_000_000,
+        -1_000_000_000 <= c <= 1_000_000_000,
+    ensures
+        max_of_three_spec(a as int, b as int, c as int, result as int),
+{
+    // TODO: write this yourself
+    a
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="18"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <h3>Problem 3 of 4: greatest common divisor</h3>
+    <p>
+      Given two non-negative whole numbers, at least one of them not zero,
+      find their <strong>greatest common divisor</strong>: the largest number
+      that divides both evenly. This one has a loop, so unlike the first two
+      problems today, you should expect to actually need Step 3.
+    </p>
+
+    <h4>Workflow 1: write the code, then write the tests, both yourself</h4>
+    <ol>
+      <li>Write <code>compute_gcd</code> yourself, using the Euclidean algorithm (repeatedly replace <code>(a, b)</code> with <code>(b, a % b)</code> until <code>b</code> is 0).</li>
+      <li>Then write your own test cases below: two numbers that share no factors but 1, one input being 0, and equal inputs. Come up with the specific numbers yourself.</li>
+      <li>Only if you get stuck, ask an AI, and try to still finish both the code and the tests yourself afterward.</li>
+    </ol>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn compute_gcd(a: i32, b: i32) -> i32 {
+    // TODO: write this yourself, using the Euclidean algorithm
+    todo!()
+}
+
+fn main() {
+    // TODO: write your own test cases here, as (a, b) tuples
+    for (a, b) in [(12, 8)] {
+        println!("gcd({}, {}) -> {}", a, b, compute_gcd(a, b));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <h4>Workflow 2: spec, then code, then proof</h4>
+    <p>
+      The spec below is written recursively, mirroring the Euclidean algorithm
+      itself: <code>gcd(a, 0)</code> is just <code>a</code>; otherwise
+      <code>gcd(a, b)</code> is whatever <code>gcd(b, a % b)</code> turns out
+      to be. It's given to you complete this time, since writing a recursive
+      spec correctly <em>and</em> getting an AI to write a matching proof cold,
+      in one sitting, is a lot for a single 15-minute problem. Your job is
+      Steps 2 and 3.
+    </p>
+    <ol>
+      <li><strong>Step 1, spec:</strong> already done, below; read it before moving on.</li>
+      <li>
+        <strong>Step 2, code:</strong> write the exec function yourself, using
+        a <code>while</code> loop and the same Euclidean-algorithm logic you
+        already wrote in Workflow 1 above. Paste it in and click Run. It's
+        genuinely likely to fail here, the same "postcondition not satisfied"
+        pattern from Part 1's naive loop demo, because there's no invariant
+        yet. That's expected, not a mistake.
+      </li>
+      <li>
+        <strong>Step 3, proof:</strong> write the invariant yourself. Think
+        about what stays true every time through the loop: the specific pair
+        <code>(x, y)</code> changes, but the answer you're computing toward
+        doesn't, so <code>gcd_spec</code> applied to the current
+        <code>(x, y)</code> should always equal <code>gcd_spec</code> applied
+        to the original <code>(a, b)</code>. Add that as an
+        <code>invariant</code> clause (plus bounds on <code>x</code> and
+        <code>y</code>) and run again.
+      </li>
+      <li>
+        If you're stuck on the code or the invariant, describe the specific
+        thing you're stuck on to an AI (for the invariant, that Verus rejects
+        your loop with no invariant yet), and keep going until the whole
+        pipeline verifies.
+      </li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn gcd_spec(a: int, b: int) -> int
+    decreases b when b >= 0
+{
+    if b == 0 {
+        a
+    } else {
+        gcd_spec(b, a % b)
+    }
+}
+
+fn compute_gcd(a: i32, b: i32) -> (result: i32)
+    requires
+        0 <= a <= 1_000_000,
+        0 <= b <= 1_000_000,
+        a > 0 || b > 0,
+    ensures
+        result == gcd_spec(a as int, b as int),
+{
+    // TODO: write this yourself
+    let mut x = a;
+    let mut y = b;
+    while y != 0
+        // TODO: add the invariant here once Step 2 fails without one
+        decreases y,
+    {
+        let temp = y;
+        y = x % y;
+        x = temp;
+    }
+    x
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="26"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-gcd-invariant" data-hide-label="Hide the invariant" type="button">See a working invariant (try the AI first!)</button>
+    <div class="reveal-answer" id="solved-gcd-invariant">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+invariant
+    0 <= x <= 1_000_000,
+    0 <= y <= 1_000_000,
+    gcd_spec(x as int, y as int) == gcd_spec(a as int, b as int),
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <p class="worksheet-note">
+        Confirmed while building this site: this invariant, together with the
+        rest of the code above, verifies with no assert and no lemma needed,
+        it turns out this particular loop only ever needed Proof Type 2. Read
+        the middle clause as "the answer we're building toward never changes,
+        step by step," which is exactly the same value the Euclidean algorithm
+        is quietly preserving by hand.
+      </p>
+    </div>
+
+    <h3>Problem 4 of 4: count the multiples of three</h3>
+    <p>
+      Given a whole number <code>n</code>, count how many whole numbers from
+      <code>0</code> up to (but not including) <code>n</code> are multiples of
+      3. This one has a loop too, so like the gcd problem, expect to need Step
+      3, but the loop itself is much simpler: no Euclidean algorithm, just
+      "check one number, maybe count it, move on," the same shape as
+      Part 1's <code>count_evens</code> example. Unlike the gcd problem, you
+      write <em>all three</em> parts yourself this time, spec included.
+    </p>
+
+    <h4>Workflow 1: write the code, then write the tests, both yourself</h4>
+    <ol>
+      <li>Write <code>count_multiples_of_three</code> yourself.</li>
+      <li>Then write your own test cases below: <code>n = 0</code>, a small number, and a number that's itself a multiple of 3. Come up with the specific numbers yourself.</li>
+      <li>Only if you get stuck, ask an AI, and try to still finish both the code and the tests yourself afterward.</li>
+    </ol>
+    <div class="playground" data-tool="rustc">
+      <script type="text/plain" class="code-source">
+fn count_multiples_of_three(n: i32) -> i32 {
+    // TODO: write this yourself
+    todo!()
+}
+
+fn main() {
+    // TODO: write your own test cases here
+    for n in [0] {
+        println!("count_multiples_of_three({}) -> {}", n, count_multiples_of_three(n));
+    }
+}
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Rust</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.rust-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="10"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <h4>Workflow 2: spec, then code, then proof</h4>
+    <p>You're doing the full pipeline yourself this time, spec included, before turning to AI for anything.</p>
+    <ol>
+      <li>
+        <strong>Step 1, spec:</strong> write
+        <code>multiples_of_three_spec</code> yourself: it's recursive, the
+        same three-case shape as <code>even_count_spec</code> from Part 1
+        (base case at 0, then one case per remainder). Paste it in and click
+        Run to check it's valid Verus.
+      </li>
+      <li>
+        <strong>Step 2, code:</strong> write the matching
+        <code>count_multiples_of_three</code> exec function yourself, using a
+        <code>while</code> loop, paste it in, and click Run. Expect it to fail
+        with no invariant yet, the same as the gcd problem; that's expected,
+        not a mistake.
+      </li>
+      <li>
+        <strong>Step 3, proof:</strong> write the invariant yourself, the same
+        three-clause shape as <code>count_evens</code> from Part 1 (a bound on
+        how far you've gotten, the count matching the spec applied to that
+        point, and a bound on the count itself).
+      </li>
+      <li>
+        If you're genuinely stuck on any part, describe the specific thing
+        you're stuck on to an AI and keep going until the whole pipeline, spec
+        through verified proof, actually works.
+        Add whatever you end up with as an <code>invariant</code> clause on
+        the loop, and run again. If it's still not quite right, this is
+        exactly the empirical "run it, read the error, fix the specific gap"
+        loop from Part 1: read what Verus actually says and fix only that.
+      </li>
+    </ol>
+    <div class="playground" data-tool="verus">
+      <script type="text/plain" class="code-source">
+use vstd::prelude::*;
+
+verus! {
+
+spec fn multiples_of_three_spec(n: int) -> int
+    decreases n
+{
+    // TODO: write this yourself
+    0
+}
+
+fn count_multiples_of_three(n: i32) -> (result: i32)
+    requires
+        0 <= n <= 1000,
+    ensures
+        result == multiples_of_three_spec(n as int),
+{
+    // TODO: write this yourself
+    n
+}
+
+fn main() {}
+
+} // verus!
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Verus</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <a class="open-playground-link" href="https://play.verus-lang.org/" target="_blank" rel="noopener">Open Playground ↗</a>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="20"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <button class="reveal-btn btn btn-outline" data-target="solved-multiples-of-three" data-hide-label="Hide the solved version" type="button">See a working version (try the AI first!)</button>
+    <div class="reveal-answer" id="solved-multiples-of-three">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+spec fn multiples_of_three_spec(n: int) -> int
+    decreases n
+{
+    if n <= 0 {
+        0
+    } else if (n - 1) % 3 == 0 {
+        1 + multiples_of_three_spec(n - 1)
+    } else {
+        multiples_of_three_spec(n - 1)
+    }
+}
+
+fn count_multiples_of_three(n: i32) -> (result: i32)
+    requires
+        0 <= n <= 1000,
+    ensures
+        result == multiples_of_three_spec(n as int),
+{
+    let mut count = 0;
+    let mut i = 0;
+    while i < n
+        invariant
+            0 <= i <= n,
+            count == multiples_of_three_spec(i as int),
+            0 <= count <= i,
+        decreases n - i,
+    {
+        if i % 3 == 0 {
+            count += 1;
+        }
+        i += 1;
+    }
+    count
+}
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Verus</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      <p class="worksheet-note">
+        Confirmed while building this site: this spec, code, and invariant
+        together verify with no assert and no lemma needed, the same as
+        <code>count_evens</code> from Part 1. If your invariant looks
+        different but still says something equivalent to the middle clause
+        here ("count matches the spec applied to how far we've gotten so
+        far"), that's a genuine success, not a mismatch to worry about.
+      </p>
+    </div>
+  </div>
+
+  <div class="section-block deliverable no-print">
+    <span class="section-tag">Deliverable</span>
+    <h2>✅ Compare the two workflows</h2>
+    <div class="worksheet" data-key="day5-compare">
+      <p><strong>Across these three problems, which workflow gave you more confidence the code was actually correct, and why?</strong></p>
+      <textarea class="textbox" data-cell="confidence" style="min-height:80px;"></textarea>
+      <p><strong>Which was faster to get to a working answer? Did that change once the gcd problem needed a real proof?</strong></p>
+      <textarea class="textbox" data-cell="speed" style="min-height:60px;"></textarea>
+      <p><strong>Did testing (Workflow 1) miss anything that the formal spec (Workflow 2) would have caught, or vice versa?</strong></p>
+      <textarea class="textbox" data-cell="gaps" style="min-height:80px;"></textarea>
+    </div>
+  </div>
+
+  <div class="section-block do no-print" style="margin-top:2rem;">
+    <span class="section-tag">Do</span>
+    <h2>🔨 The rest of today</h2>
+    <p>Fill in the report template below. Most of it is pasting in things you already made this week.</p>
+    <button class="btn btn-outline" onclick="window.print()">🖨 Print or save this report as PDF</button>
+    <p class="worksheet-note" style="margin-top:0.75rem;">Prefer to write offline? <a href="files/report_template.md" download>⬇ download the same template as a plain text file</a>.</p>
+  </div>
+
+  <div class="section-block deliverable">
+    <span class="section-tag">Deliverable</span>
+    <h2>✅ Final Report</h2>
+    <p class="worksheet-note">Target: 1&ndash;2 pages. Saved automatically in this browser as you type.</p>
+
+    <div class="worksheet" data-key="day5-report">
+      <h3>1. What you did and what you learned this week</h3>
+      <p class="worksheet-note">Write about what you did and learned each day, Day 1 through Day 5.</p>
+      <textarea class="textbox" data-cell="problem" style="min-height:140px;"></textarea>
+
+      <h3>2. Vibe coding, then testing it (Days 1&ndash;3)</h3>
+      <p class="worksheet-note">Write about what you did and learned about vibe coding.</p>
+      <textarea class="textbox" data-cell="testing" style="min-height:120px;"></textarea>
+
+      <h3>3. Specifications (Day 4)</h3>
+      <p class="worksheet-note">Write about what you did and learned about specs.</p>
+      <textarea class="textbox" data-cell="spec" style="min-height:100px;"></textarea>
+
+      <h3>4. Proofs (Day 5)</h3>
+      <p class="worksheet-note">Write about what you did and learned about proofs.</p>
+      <textarea class="textbox" data-cell="proof" style="min-height:100px;"></textarea>
+
+      <h3>5. Reflection</h3>
+      <p class="worksheet-note">Write about what you did and learned this week overall. What are your questions?</p>
+      <textarea class="textbox" data-cell="reflection" style="min-height:100px;"></textarea>
+
+      <h3>6. Suggestions</h3>
+      <p class="worksheet-note">Write about any suggestions you have for improving this internship.</p>
+      <textarea class="textbox" data-cell="suggestions" style="min-height:100px;"></textarea>
+    </div>
+  </div>
+
+  <div class="section-block learn no-print">
+    <span class="section-tag">Learn</span>
+    <h2>📖 From VeriCode-Mini to Real Research</h2>
+    <p>Everything you built this week has a bigger, professional-research counterpart. And for Days 4 and 5, you didn't just build something <em>like</em> the real thing, you used the actual tool researchers use:</p>
+    <div class="card-grid">
+      <div class="card"><h3>Your test suite</h3><p>&rarr; ordinary <strong>software testing</strong>: the same idea that runs in every company's CI pipeline before code ships.</p></div>
+      <div class="card"><h3>Your Verus specs and proofs</h3><p>&rarr; this literally <strong>is</strong> formal verification research. Verus is a real tool built by researchers to prove properties of production-grade systems code.</p></div>
+    </div>
+    <p>
+      Remember the even-plus-even proof from Day 1: one logical argument covering
+      every possible case, instead of testing examples one at a time? Today's
+      <code>assert</code>, loop <code>invariant</code>, and lemma exercises did
+      exactly that, formally, using an SMT solver instead of a human doing
+      algebra by hand. That's the frontier
+      <a href="https://hiprel-group.github.io/VeriContest/" target="_blank" rel="noopener">VeriContest</a>
+      sits on: getting proofs like that to work on real, complicated code,
+      including code an AI wrote.
+    </p>
+    <p>See the <a href="resources.html">Resources</a> page for links to go further.</p>
+  </div>
+</div>
+
+<footer class="site-footer no-print">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+<script src="js/codeblock.js"></script>
+<script src="js/playground.js"></script>
+<script src="js/worksheet.js"></script>
+<script src="js/reveal.js"></script>
+</body>
+</html>

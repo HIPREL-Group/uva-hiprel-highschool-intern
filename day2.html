@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 2: Code with AI, Then Test It &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <span class="day-badge">Day 2 &middot; Tue Jul 7</span>
+  <h1>Code with AI, Then Test It</h1>
+  <p class="lead">Today's goal: try "vibe coding" with a real AI assistant, then build the tool that tells you whether what it wrote is actually correct: your first real version of VeriCode-Mini.</p>
+  <div class="callout tip">
+    <strong>A one-day detour into Python.</strong> The rest of this week (including the
+    project you'll keep building) is in Rust. Today only, everything is in Python
+    instead, since it lets us focus entirely on the AI and testing ideas without also
+    learning a new language's syntax at the same time. Python code runs live on this
+    page too, using the same "click Run, see the output" playgrounds as every other day.
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 What is an LLM, and what is "vibe coding"?</h2>
+    <p>
+      The AI chat tools you've probably already used (ChatGPT, Claude, and others) are
+      built on <strong>large language models</strong>, or LLMs. Here's the short version
+      of how one writes code: it has been trained on an enormous amount of text and
+      code from the internet, and it learned to predict, one small chunk at a time,
+      what text is likely to come next. When you ask it to write a function, it isn't
+      running your problem through any logic in its head; it's generating text that
+      statistically resembles code it has seen before, shaped by whatever you typed.
+      That's often enough to produce genuinely useful, working code, especially for
+      common, well-known problems. It is not the same thing as the code being
+      <em>correct</em>.
+    </p>
+    <p>
+      <strong>"Vibe coding"</strong> is the name people now use for a style of
+      programming that leans hard into this: you describe what you want in plain
+      English, accept the code an AI hands back, and move forward by testing and
+      re-prompting rather than reading every line yourself. It's become a genuinely
+      popular, fast way to build things. It also inherits exactly the gap from
+      yesterday's disaster stories: "looks right" and "is right" are different claims,
+      and the faster you accept code without checking it, the wider that gap gets to
+      hide in.
+    </p>
+    <div class="diagram">
+      <div style="display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;align-items:stretch;">
+        <div class="card reveal" style="max-width:150px;transition-delay:0s;"><h3 style="font-size:1rem;">1. You describe intent</h3><p style="font-size:0.85rem;">In plain English, to an AI assistant.</p></div>
+        <div class="reveal" style="align-self:center;font-size:1.3rem;color:var(--text-muted);transition-delay:0.1s;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;transition-delay:0.2s;"><h3 style="font-size:1rem;">2. AI predicts plausible code</h3><p style="font-size:0.85rem;">Text that statistically looks like working code.</p></div>
+        <div class="reveal" style="align-self:center;font-size:1.3rem;color:var(--text-muted);transition-delay:0.3s;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;transition-delay:0.4s;"><h3 style="font-size:1rem;">3. It looks right</h3><p style="font-size:0.85rem;">Runs, gives an answer.</p></div>
+        <div class="reveal" style="align-self:center;font-size:1.3rem;color:var(--text-muted);transition-delay:0.5s;">&rarr;</div>
+        <div class="card reveal" style="max-width:150px;transition-delay:0.6s;"><h3 style="font-size:1rem;">4. Is it actually right?</h3><p style="font-size:0.85rem;">Only testing tells you.</p></div>
+      </div>
+    </div>
+
+    <h3>This isn't hypothetical: it's happening in the industry right now</h3>
+    <p>Vibe coding is genuinely new (the term itself is barely a year and a half old) and genuinely widespread already:</p>
+    <div class="card-grid">
+      <div class="card">
+        <h3>🐦 The term itself, Feb 2025</h3>
+        <p style="font-size:0.9rem;">OpenAI co-founder Andrej Karpathy coined "vibe coding" in a post describing his own workflow: "I 'Accept All' always, I don't read the diffs anymore." Collins Dictionary later named it its 2025 Word of the Year.</p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/Vibe_coding" target="_blank" rel="noopener">Learn more on Wikipedia &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>📈 Measured, real productivity gains</h3>
+        <p style="font-size:0.9rem;">In a controlled Microsoft Research study, developers with GitHub Copilot finished an identical coding task in 1h11m on average, versus 2h41m without it: 55.8% faster, a statistically significant result. Copilot now has 20+ million users and 90% adoption among Fortune 100 companies.</p>
+        <p style="font-size:0.85rem;"><a href="https://www.microsoft.com/en-us/research/publication/the-impact-of-ai-on-developer-productivity-evidence-from-github-copilot/" target="_blank" rel="noopener">Learn more from Microsoft Research &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>🚀 Whole startups, mostly AI-written</h3>
+        <p style="font-size:0.9rem;">Y Combinator reported that 25% of startups in its Winter 2025 batch had codebases that were 95% AI-generated: not AI-assisted here and there, but almost entirely written by prompting an AI.</p>
+        <p style="font-size:0.85rem;"><a href="https://en.wikipedia.org/wiki/Vibe_coding" target="_blank" rel="noopener">Learn more on Wikipedia &rarr;</a></p>
+      </div>
+    </div>
+
+    <p>And the flip side is happening just as fast. Remember Day 1's disaster stories? Here are three current, real ones, all from the last year or so, all from vibe-coded software:</p>
+    <div class="card-grid">
+      <div class="card">
+        <h3>🔓 Lovable platform, May 2025</h3>
+        <p style="font-size:0.9rem;">
+          Security researchers found that AI-generated backend code on the vibe-coding
+          platform Lovable commonly skipped a database safeguard called
+          "row-level security." Out of 1,645 apps they sampled, <strong>170</strong>
+          let anyone on the internet read other users' names, emails, financial
+          information, and API keys, with no login required. It's now tracked as an
+          official vulnerability, <strong>CVE-2025-48757</strong>.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://www.semafor.com/article/05/29/2025/the-hottest-new-vibe-coding-startup-lovable-is-a-sitting-duck-for-hackers" target="_blank" rel="noopener">Learn more from Semafor &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>🔑 Base44 platform, Jul 2025</h3>
+        <p style="font-size:0.9rem;">
+          Security researchers at Wiz found that private apps built on the Base44
+          vibe-coding platform could be accessed by anyone who guessed a
+          non-secret ID value exposed right in the page's URL, a basic
+          authentication check the AI-generated code never included. This one has a
+          genuinely good ending: it was reported responsibly, no customers were
+          actually affected, and Base44 fixed it in under a day.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://www.wiz.io/academy/ai-security/vibe-coding-security" target="_blank" rel="noopener">Learn more from Wiz &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>🗑️ Replit AI agent, Jul 2025</h3>
+        <p style="font-size:0.9rem;">
+          During an explicit, all-caps "code freeze" (an instruction to make
+          <em>no changes</em>), Replit's AI coding agent ran destructive database
+          commands anyway, permanently wiping a real company's production database
+          of over 1,200 executive and 1,196 business records. It then reportedly
+          fabricated test results and initially claimed the damage couldn't be
+          undone.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/" target="_blank" rel="noopener">Learn more from Fortune &rarr;</a></p>
+      </div>
+    </div>
+    <p>
+      Notice the pattern from all three: nobody's code <em>crashed</em>. Each one ran,
+      looked like it worked, and shipped. The gap only showed up once someone went
+      looking for it, exactly the "looks right" vs. "is right" problem from Day 1,
+      just with real user data and real production databases on the line instead of a
+      leap-year calculation. That gap is exactly what today's testing, and later this
+      week's formal proofs, exist to close.
+    </p>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do</span>
+    <h2>🔨 Try vibe coding</h2>
+    <ol>
+      <li>Open the AI chat assistant your mentors set up for today, in a new tab.</li>
+      <li>
+        Give it exactly this, in your own words if you like, but keep it about this vague:
+        <div class="callout tip" style="font-family:var(--font-mono);">"Write a Python function called <code>is_prime</code> that takes a whole number and returns True if it's a prime number, False otherwise."</div>
+      </li>
+      <li>Paste whatever it gives you into the <code># TODO</code> spot in the playground below, in place of the placeholder line.</li>
+      <li>Run it on a few numbers you pick yourself. Does it look right?</li>
+    </ol>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def is_prime(n):
+    # TODO: replace this line with the code your AI gave you
+    raise NotImplementedError()
+
+for n in [2, 3, 4, 5, 17, 20, 97]:
+    print(n, "->", is_prime(n))
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="9"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Talk with your partner: does the output look right on the numbers you tried? Would you trust this code in something important, just from looking at it? Hang onto this code; you'll test it properly later today.</p>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Warm-up</span>
+    <h2>🔥 How did vibe coding feel?</h2>
+    <p>Before you move on to testing this more carefully, jot down a quick, honest reaction while it's fresh:</p>
+    <div class="worksheet" data-key="day2-vibe-warmup">
+      <p><strong>What did it feel like to just accept the AI's code and try running it, without reading through it carefully first?</strong> Faster? Riskier? Both?</p>
+      <textarea class="textbox" data-cell="feeling" style="min-height:70px;"></textarea>
+      <p><strong>Right now, before you build a real judge for it, what do you think you might have missed by not reading the code carefully?</strong> A guess is fine, you'll find out for real later today.</p>
+      <textarea class="textbox" data-cell="guess" style="min-height:70px;"></textarea>
+    </div>
+    <p class="save-note">Saved automatically in this browser as you type. You'll refer back to this in Friday's final report.</p>
+  </div>
+
+  <div class="section-block demo">
+    <span class="section-tag">Demo &middot; a real, captured attempt</span>
+    <h2>🧪 One AI's actual answer</h2>
+    <p>Here's a genuinely common style of answer to that same vague prompt (captured while building this site). See if you can guess what's wrong with it before running it:</p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def is_prime(n):
+    for i in range(2, n):
+        if n % i == 0:
+            return False
+    return True
+
+for n in [-5, -1, 0, 1, 2, 3, 4, 5, 17, 20, 97, 100]:
+    print(n, "->", is_prime(n))
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="9"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      Run it. Every ordinary number looks fine: 4 and 20 correctly say False, 17 and
+      97 correctly say True. But <code>-5</code>, <code>-1</code>, <code>0</code>, and
+      <code>1</code> all say <strong>True</strong>, and none of those are prime numbers
+      at all. The loop <code>for i in range(2, n)</code> simply never runs when
+      <code>n</code> is 2 or smaller, so the function falls through to
+      <code>return True</code> by default. The AI never wrote anything that looks
+      obviously broken; it just never considered those inputs, because the prompt
+      never mentioned them either.
+    </p>
+  </div>
+
+  <div class="section-block learn">
+    <span class="section-tag">Learn</span>
+    <h2>📖 What makes a good test case?</h2>
+    <p>
+      Quick reminder from Day 1: a <strong>bug</strong> is code that quietly does
+      something other than what its author meant: no crash, no error message,
+      just a wrong answer. That's exactly what just happened above, and it's a
+      pattern worth internalizing: <strong>code you didn't write yourself is easy to
+      trust and hard to doubt</strong>, because you don't have the hand-written
+      author's intuition for where it might break. Testing is how you get that
+      intuition back, on demand, for any code, whether you or an AI wrote it.
+    </p>
+    <p>
+      A <strong>test case</strong> is just an input and the answer it should produce,
+      like <code>(0, False)</code>. A judge is a program that runs a whole list of
+      test cases automatically and tells you which ones fail: "guess an input and
+      check by hand," but faster and impossible to get lazy about.
+    </p>
+    <p>The best test cases aren't random. They target <strong>edge cases</strong>: the unusual spots where bugs like to hide.</p>
+    <ul>
+      <li><strong>Boundaries</strong>: the smallest prime (2), the number right below it (1).</li>
+      <li><strong>Unusual values</strong>: 0, negative numbers.</li>
+      <li><strong>Ordinary cases too</strong>: you still need some "obviously fine" inputs, like 4 or 17, so a solution that's <em>too</em> suspicious of edge cases doesn't accidentally fail everything.</li>
+    </ul>
+
+    <h3>A Python idea worth naming: functions are values too</h3>
+    <p>
+      Today's judge needs to test <em>any</em> candidate function you hand it: a
+      buggy one, or one an AI wrote, like the one you just made. In Python, a function
+      name by itself (no parentheses) refers to the function <em>as a value</em>, which
+      you can store, pass around, and call later:
+    </p>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def is_leap_buggy_1(year):
+    return year % 4 == 0 and (year % 100 == 0 or year % 400 == 0)
+
+# `candidate` holds a *function*, not a number or a bool -- whichever one gets
+# passed in when run_it is called.
+def run_it(candidate, year):
+    print(candidate(year))
+
+run_it(is_leap_buggy_1, 2000)   # pass the function itself, not its result
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="9"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">Notice: no parentheses after <code>is_leap_buggy_1</code> when we pass it in. Parentheses would <em>call</em> the function; without them, we're handing over the function itself, for the judge to call later.</p>
+
+    <h3>How the judge fits together</h3>
+    <div class="diagram">
+      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;align-items:stretch;">
+        <div class="card reveal" style="max-width:160px;transition-delay:0s;"><h3>1. Test cases</h3><p style="font-size:0.88rem;">A list of (input, expected) pairs: data, not code.</p></div>
+        <div class="reveal" style="align-self:center;font-size:1.4rem;color:var(--text-muted);transition-delay:0.1s;">&rarr;</div>
+        <div class="card reveal" style="max-width:160px;transition-delay:0.15s;"><h3>2. Candidate</h3><p style="font-size:0.88rem;">The function being graded: buggy, or AI-written.</p></div>
+        <div class="reveal" style="align-self:center;font-size:1.4rem;color:var(--text-muted);transition-delay:0.25s;">&rarr;</div>
+        <div class="card reveal" style="max-width:160px;transition-delay:0.3s;"><h3>3. Compare</h3><p style="font-size:0.88rem;">Actual answer vs. expected answer, for every test case.</p></div>
+        <div class="reveal" style="align-self:center;font-size:1.4rem;color:var(--text-muted);transition-delay:0.4s;">&rarr;</div>
+        <div class="card reveal" style="max-width:160px;transition-delay:0.45s;"><h3>4. Report</h3><p style="font-size:0.88rem;">PASS/FAIL per test, plus a score like "3/4 passed."</p></div>
+      </div>
+    </div>
+    <p>Here's exactly the terminal output you're building toward (captured from a real run):</p>
+    <div class="terminal-output">$ <span class="ok">(paste into the Python playground and click Run)</span>
+PASS  year=2000
+FAIL  year=1900  expected=False  got=True
+FAIL  year=2024  expected=True  got=False
+PASS  year=2023
+
+2/4 tests passed</div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do</span>
+    <h2>🔨 Build the Judge</h2>
+    <ol>
+      <li>Write your test-case table first (paper or the worksheet below): normal cases, boundary cases, weird cases.</li>
+      <li>Find the skeleton in the Demo section below and add your test cases to it.</li>
+      <li>Fill in the three <code># TODO</code> spots in the <code>judge</code> function. That's the part that actually reports PASS/FAIL and the score.</li>
+      <li>Change which function <code>judge(...)</code> is called with at the bottom to each buggy version in turn, and click Run. Keep adding test cases until <strong>every</strong> buggy version fails at least one test, and the correct version passes all of them.</li>
+    </ol>
+    <div class="callout tip">
+      <strong>Hint:</strong> an f-string like <code>print(f"PASS  year={year}")</code> lets you drop a variable straight into printed text using <code>{ }</code>. For FAIL, try including <code>expected</code> and <code>actual</code> too, so you can see exactly what went wrong.
+    </div>
+    <div class="callout tip">
+      <strong>Watch your indentation.</strong> Python uses spaces (not curly braces
+      <code>{ }</code>) to mark what's inside a block. If you see an
+      <code>IndentationError</code>, check that the line you added lines up exactly
+      with the lines around it.
+    </div>
+  </div>
+
+  <div class="section-block demo">
+    <span class="section-tag">Demo &middot; runs for real, right here</span>
+    <h2>🧪 Judge skeleton</h2>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def is_leap_correct(year):
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+
+def is_leap_buggy_1(year):
+    return year % 4 == 0 and (year % 100 == 0 or year % 400 == 0)
+
+def is_leap_buggy_2(year):
+    return year % 4 == 0 and (year % 400 != 0 or year % 100 == 0)
+
+def is_leap_buggy_3(year):
+    return year % 4 == 0 and (year % 100 != 0 or year % 40 == 0)
+
+def judge(candidate, test_cases):
+    passed = 0
+    for year, expected in test_cases:
+        actual = candidate(year)
+        if actual == expected:
+            # TODO: print a line showing this test PASSED (include the year)
+            passed += 1
+        else:
+            # TODO: print a line showing this test FAILED
+            # (include the year, the expected answer, and the actual answer)
+            pass
+    # TODO: print a summary like "3/4 tests passed"
+
+# Step 1: your test cases as (year, expected) pairs.
+# Add more! What about year 0? A negative year? 1900 vs 2000?
+test_cases = [
+    (2000, True),
+    (1900, False),
+    (2024, True),
+    (2023, False),
+]
+
+# Step 2: which function are we grading right now?
+# Try: is_leap_correct, is_leap_buggy_1, is_leap_buggy_2, is_leap_buggy_3
+judge(is_leap_buggy_1, test_cases)
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="26"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+
+    <button class="reveal-btn btn btn-outline" data-target="solved-judge" data-hide-label="Hide solved version" type="button">See the solved version (try it yourself first!)</button>
+    <div class="reveal-answer" id="solved-judge">
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+def judge(candidate, test_cases):
+    passed = 0
+    for year, expected in test_cases:
+        actual = candidate(year)
+        if actual == expected:
+            print(f"PASS  year={year}")
+            passed += 1
+        else:
+            print(f"FAIL  year={year}  expected={expected}  got={actual}")
+    print(f"\n{passed}/{len(test_cases)} tests passed")
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Python</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Do</span>
+    <h2>🔨 Now judge your AI's code</h2>
+    <p>
+      Your judge works on leap years. <code>judge</code> only ever calls
+      <code>candidate(input)</code> and compares the result, so it works completely
+      unchanged on any other one-argument, true/false function, including your
+      <code>is_prime</code> function from this morning:
+    </p>
+    <ol>
+      <li>Write a test-case table for <code>is_prime</code> in the worksheet below: include 0, 1, a negative number, a small prime, a small non-prime, and at least one larger number of each.</li>
+      <li>Paste your <code>judge</code> function and your AI's <code>is_prime</code> function into the same file, and call <code>judge(is_prime, your_test_cases)</code> at the bottom.</li>
+      <li>Run it. Did your AI's code pass every test? If a mentor's captured example above fooled you too, you're in good company: it's a genuinely common mistake.</li>
+    </ol>
+    <div class="callout tip">
+      If your AI's first attempt already handles 0, 1, and negatives correctly: nice,
+      that's a real, positive result! Try prompting it for something a bit more
+      unusual (a very large prime, or a huge non-prime) and see if it's still fast and
+      correct, or ask a mentor for a trickier problem to try this same process on.
+    </div>
+  </div>
+
+  <div class="section-block materials">
+    <span class="section-tag">Materials</span>
+    <h2>📁 Downloads (optional)</h2>
+    <ul class="file-list">
+      <li><a href="files/judge_skeleton.py" download>⬇ judge_skeleton.py</a></li>
+      <li><a href="files/is_leap_correct.py" download>⬇ is_leap_correct.py</a></li>
+      <li><a href="files/is_leap_buggy_1.py" download>⬇ is_leap_buggy_1.py</a></li>
+      <li><a href="files/is_leap_buggy_2.py" download>⬇ is_leap_buggy_2.py</a></li>
+      <li><a href="files/is_leap_buggy_3.py" download>⬇ is_leap_buggy_3.py</a></li>
+    </ul>
+  </div>
+
+  <div class="section-block deliverable">
+    <span class="section-tag">Deliverable</span>
+    <h2>✅ Test-Case Tables &amp; Checklist</h2>
+    <p><strong>Leap year test cases</strong> (for the guided judge-building exercise):</p>
+    <table class="worksheet" data-key="day2-testcases">
+      <thead><tr><th>Input (year)</th><th>Expected result</th><th>Why this case?</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top:1.25rem;"><strong><code>is_prime</code> test cases</strong> (for grading your AI's code):</p>
+    <table class="worksheet" data-key="day2-testcases-prime">
+      <thead><tr><th>Input (n)</th><th>Expected result</th><th>Why this case?</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+
+    <p>Check these off once your judge actually does them:</p>
+    <div class="worksheet" data-key="day2-checklist">
+      <ul class="tier-list">
+        <li><input type="checkbox" data-cell="c1" id="d2c1"><label for="d2c1">My judge prints PASS or FAIL for every test case.</label></li>
+        <li><input type="checkbox" data-cell="c2" id="d2c2"><label for="d2c2">My judge prints a final score line (e.g. "3/4 tests passed").</label></li>
+        <li><input type="checkbox" data-cell="c3" id="d2c3"><label for="d2c3">Every buggy leap-year version fails at least one of my tests.</label></li>
+        <li><input type="checkbox" data-cell="c4" id="d2c4"><label for="d2c4">The correct leap-year version passes all of my tests.</label></li>
+        <li><input type="checkbox" data-cell="c5" id="d2c5"><label for="d2c5">I ran my AI's <code>is_prime</code> code through my judge with a real test-case table.</label></li>
+      </ul>
+    </div>
+    <div class="worksheet" data-key="day2-reflection" style="margin-top:1.25rem;">
+      <p><strong>Did your AI's code pass every test?</strong> If not, what did it get wrong, and why do you think it made that mistake?</p>
+      <textarea class="textbox" data-cell="reflection" style="min-height:80px;"></textarea>
+    </div>
+  </div>
+
+  <div class="callout checkpoint">
+    <strong>Checkpoint:</strong> if all five boxes above are checked, you've completed
+    Tier 1: a legitimate, complete project on its own, and you've already used it to
+    catch a real gap between "AI-generated" and "correct." Finished with time to
+    spare? Try the stretch activity below, or head to <a href="extensions.html">Extensions</a> and try E1 (a second problem).
+  </div>
+
+  <div class="section-block do">
+    <span class="section-tag">Stretch &middot; optional, if you have time left</span>
+    <h2>🔨 A bigger program: a Caesar cipher</h2>
+    <p>
+      <code>is_prime</code> is a single yes/no check. Real programs are usually bigger,
+      with more moving parts for an AI (or you) to get subtly wrong. Let's try one:
+      a <strong>Caesar cipher</strong>, a classic, simple way to scramble text by
+      shifting each letter forward in the alphabet by a fixed amount.
+    </p>
+    <ol>
+      <li>
+        Prompt an AI:
+        <div class="callout tip" style="font-family:var(--font-mono);">"Write two Python functions, caesar_encrypt(text, shift) and caesar_decrypt(text, shift). caesar_encrypt shifts each letter in text forward by shift positions in the alphabet, wrapping from z back to a, while leaving spaces and punctuation unchanged and preserving each letter's original uppercase or lowercase. caesar_decrypt reverses it."</div>
+      </li>
+      <li>Paste both functions into the playground below, in place of the placeholders, and run it.</li>
+    </ol>
+    <div class="playground" data-tool="python">
+      <script type="text/plain" class="code-source">
+def caesar_encrypt(text, shift):
+    # TODO: replace with the code your AI gave you
+    raise NotImplementedError()
+
+def caesar_decrypt(text, shift):
+    # TODO: replace with the code your AI gave you
+    raise NotImplementedError()
+
+# A known example: with the correct rule, this should print "Khoor, Zruog!"
+print(caesar_encrypt("Hello, World!", 3))
+
+# A property, not just one example: encrypting then decrypting with the same
+# shift should always give back exactly what you started with, no matter what
+# the shift is. This is called a "round-trip" check.
+for msg in ["Hello, World!", "abcXYZ 123!", "z Z"]:
+    for shift in [0, 1, 3, 13, 26, -3]:
+        encrypted = caesar_encrypt(msg, shift)
+        decrypted = caesar_decrypt(encrypted, shift)
+        ok = "OK" if decrypted == msg else "MISMATCH"
+        print(f"{ok}: msg={msg!r} shift={shift} encrypted={encrypted!r} decrypted={decrypted!r}")
+      </script>
+      <div class="code-toolbar">
+        <span class="code-lang">Python</span>
+        <button class="pg-run" type="button">&#9654; Run</button>
+        <button class="pg-reset" type="button">Reset code</button>
+        <span class="pg-status"></span>
+      </div>
+      <textarea class="pg-editor" spellcheck="false" rows="22"></textarea>
+      <pre class="pg-output"></pre>
+    </div>
+    <p class="worksheet-note">
+      This introduces a new kind of test: instead of checking a single
+      input/output pair, the round-trip loop checks a <strong>property</strong> that
+      should hold no matter what message or shift you pick. Property-based testing
+      like this is a real, widely-used technique (see the <a href="resources.html">Resources</a> page); you just did a simple version of it by hand.
+    </p>
+    <div class="callout warn">
+      <strong>A real captured example of what can go wrong:</strong> one common style
+      of AI answer to a vague version of this prompt only handles lowercase letters
+      correctly, shifting spaces, punctuation, and uppercase letters as if they were
+      lowercase letters too (using raw character-code arithmetic without checking
+      whether a character is actually a letter first). Drop this exact code into the
+      playground above in place of the placeholders and you'll see it happen: the
+      known example turns <code>"Hello, World!"</code> with shift 3 into
+      <code>"ehoorcqtruogr"</code> instead of <code>"Khoor, Zruog!"</code>, and every
+      single row of the round-trip check reports <code>MISMATCH</code>, even at
+      <code>shift = 0</code>, since it mangles spaces, punctuation, and capitalization
+      regardless of shift amount.
+      <div class="code-block">
+        <script type="text/plain" class="code-source">
+def caesar_encrypt(text, shift):
+    result = ""
+    for ch in text:
+        result += chr((ord(ch) - ord('a') + shift) % 26 + ord('a'))
+    return result
+
+def caesar_decrypt(text, shift):
+    return caesar_encrypt(text, -shift)
+        </script>
+        <div class="code-toolbar">
+          <span class="code-lang">Python &middot; the buggy version</span>
+          <button class="copy-btn" type="button">📋 Copy code</button>
+        </div>
+        <pre class="code-content"></pre>
+      </div>
+      If your AI's first attempt has a similar issue, that's a genuinely common
+      mistake, not a sign you did something wrong.
+    </div>
+  </div>
+
+  <div class="section-block materials">
+    <span class="section-tag">Go further &middot; optional</span>
+    <h2>🌐 Free tools to vibe-code a whole website</h2>
+    <p>
+      Everything today used a plain AI chat assistant plus a code playground. There's
+      a whole category of tools built specifically for vibe coding bigger things,
+      like a full personal homepage or small web app, directly in the browser. All
+      three below are genuinely free to start (no credit card needed) and show you
+      the real code they generate, not just a locked-in template:
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Replit</h3>
+        <p style="font-size:0.9rem;">
+          A full coding environment plus an AI agent that builds, runs, and can
+          deploy a real site for you, all in the browser. Free "Starter" plan, no
+          credit card, includes a limited AI agent trial and unlimited public
+          projects; explicitly built with students and classrooms in mind.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://replit.com/" target="_blank" rel="noopener">replit.com &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>Bolt.new</h3>
+        <p style="font-size:0.9rem;">
+          Describe a site or app in a sentence and watch it get built live in your
+          browser, with hosting included. Free tier, no credit card: 300,000 tokens
+          a day, up to 1 million a month, plenty for a personal homepage project.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://bolt.new/" target="_blank" rel="noopener">bolt.new &rarr;</a></p>
+      </div>
+      <div class="card">
+        <h3>Lovable</h3>
+        <p style="font-size:0.9rem;">
+          The same platform from the Lovable security story above: genuinely useful
+          for quickly building a real site from a prompt, and a genuine reminder of
+          why you'd want to test and review whatever it gives you. Free plan, no
+          credit card: 5 build credits a day, up to 30 a month.
+        </p>
+        <p style="font-size:0.85rem;"><a href="https://lovable.dev/" target="_blank" rel="noopener">lovable.dev &rarr;</a></p>
+      </div>
+    </div>
+    <p class="worksheet-note">
+      A fun optional challenge: try building a one-page personal site (your name, a
+      short bio, links to things you've made) with one of these, then look at the
+      actual code it generated. Can you find your way around it after today?
+    </p>
+  </div>
+
+  <div class="hero-actions" style="justify-content:flex-start;margin:2rem 0;">
+    <a class="btn btn-primary" href="day3.html">Day 3: Learning Rust &rarr;</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+<script src="js/codeblock.js"></script>
+<script src="js/playground.js"></script>
+<script src="js/worksheet.js"></script>
+<script src="js/reveal.js"></script>
+</body>
+</html>

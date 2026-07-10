@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resources &middot; VeriCode-Mini</title>
+<link rel="icon" href="icon/image_nontrans.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="index.html"><img src="icon/image.png" alt="Hiprel Group" class="brand-icon">VeriCode-Mini</a>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="project.html">The Project</a>
+      <a href="day1.html">Day 1</a>
+      <a href="day2.html">Day 2</a>
+      <a href="day3.html">Day 3</a>
+      <a href="day4.html">Day 4</a>
+      <a href="day5.html">Day 5</a>
+      <a href="extensions.html">Extensions</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <h1>Resources</h1>
+
+  <h2>Glossary</h2>
+  <div class="card-grid">
+    <div class="card"><h3>Test case</h3><p style="font-size:0.9rem;">A single (input, expected output) pair used to check a solution.</p></div>
+    <div class="card"><h3>Edge case</h3><p style="font-size:0.9rem;">An unusual input (a boundary, an empty value, a huge number) where bugs like to hide.</p></div>
+    <div class="card"><h3>Specification</h3><p style="font-size:0.9rem;">A precise rule that defines the correct answer for every possible input, not just examples.</p></div>
+    <div class="card"><h3><code>spec fn</code></h3><p style="font-size:0.9rem;">A Verus function that exists only to describe a specification mathematically: it's never actually run.</p></div>
+    <div class="card"><h3><code>exec fn</code></h3><p style="font-size:0.9rem;">An ordinary Rust function that actually runs. Most functions you write are exec functions.</p></div>
+    <div class="card"><h3><code>proof fn</code></h3><p style="font-size:0.9rem;">A Verus function containing a logical argument (a proof) rather than a running program, used for facts that need more help than a simple <code>ensures</code> clause.</p></div>
+    <div class="card"><h3><code>requires</code> / <code>ensures</code></h3><p style="font-size:0.9rem;">A precondition (what must be true going in) and a postcondition (what's guaranteed coming out) on a function.</p></div>
+    <div class="card"><h3>SMT solver</h3><p style="font-size:0.9rem;">A program (Verus uses one called Z3) that automatically checks whether a logical statement is always true, always false, or neither: the engine that actually does Verus's proving.</p></div>
+    <div class="card"><h3>Verified vs. tested</h3><p style="font-size:0.9rem;">Tested = checked on the inputs you tried. Verified = proven correct for every possible input, by an SMT solver rather than a human.</p></div>
+  </div>
+
+  <h2>Go further</h2>
+  <ul>
+    <li><strong>Verus</strong>: the tool you used on Day 4. The official tutorial (<a href="https://verus-lang.github.io/verus/guide/">verus-lang.github.io/verus/guide</a>) covers everything from this week's basics up through loops, data structures, and much harder proofs.</li>
+    <li><strong>Property-based testing</strong>: libraries like <code>proptest</code> (Rust) or <code>Hypothesis</code> (Python) automatically generate random test inputs and search for the smallest failing example, sitting a step below full verification.</li>
+    <li><strong><a href="https://hiprel-group.github.io/VeriContest/" target="_blank" rel="noopener">VeriContest</a></strong>: the research effort behind this internship; ask Zichen or Wenxi for the full picture and current results.</li>
+  </ul>
+
+  <h2>Your report template</h2>
+  <p>The fill-in report you'll complete on Day 5 lives on the <a href="day5.html">Day 5 page</a>. It autosaves as you type and has a print/PDF button.</p>
+</div>
+
+<footer class="site-footer">
+  <div class="container">VeriCode-Mini &middot; Hiprel Group Summer 2026 HS Internship</div>
+</footer>
+
+<script src="js/site.js"></script>
+</body>
+</html>
